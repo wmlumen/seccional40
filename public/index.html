@@ -36,7 +36,7 @@
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
     const MAX_VOTOS = 350;
     const PASSWORD = 'Paraguay40';
-    const API_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; // ← Reemplazar con URL real del Web App
+    const API_URL = ''; // ← Pegar aquí la URL del Web App de Google Apps Script (opcional)
     
     // ==================== ESTADO ====================
     let state = {
@@ -102,6 +102,9 @@
         state.padron = registros;
         state.cargando = false;
         state.mensaje = `Padrón cargado: ${registros.length} electores`;
+        
+        // Guardar padrón en localStorage para asistencia.html
+        localStorage.setItem('seccional40_padron', JSON.stringify(registros));
         
         // Sugerir mesa 1 por defecto
         if (!state.mesaSeleccionada) {
@@ -207,6 +210,9 @@
       }
       
       state.votos[orden] = nuevoEstado;
+      
+      // Guardar votos en localStorage para asistencia.html
+      localStorage.setItem('seccional40_votos', JSON.stringify(state.votos));
       
       // Registrar en Google Sheets
       const elector = state.padron.find(p => p.mesa === state.mesaSeleccionada && p.orden === orden);
@@ -534,7 +540,7 @@
 
     // ==================== QR MODAL ====================
     function renderQRModal() {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('https://seccional40.web.app/transfer?mesa=' + state.mesaSeleccionada)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('https://wmlumen.github.io/seccional40/public/index.html?mesa=' + state.mesaSeleccionada)}`;
       return `
         <div class="fixed inset-0 bg-slate-900/90 backdrop-blur-2xl z-[100] flex items-center justify-center p-6">
           <div class="bg-white rounded-[3rem] p-8 max-w-md w-full text-center shadow-2xl animate-in">
