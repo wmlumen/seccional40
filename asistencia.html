@@ -1458,6 +1458,33 @@
                         </div>
                     </div>
 
+                    <!-- Tabla de Dirigentes -->
+                    <div style="background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #450a0a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+                            <i class="fas fa-users" style="margin-right: 4px; color: #dc2626;"></i>Reporte por Dirigente
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Dirigente</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Votos</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Ausentes</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Controversias</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-dirigentes">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">
+                                            <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Cargando datos...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- Tabla de Mesas -->
                     <div style="background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;">
                         <div style="font-size: 12px; font-weight: 700; color: #450a0a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
@@ -1749,6 +1776,51 @@
                 document.getElementById('resumen-votos').innerHTML = `<i class="fas fa-check-circle" style="color: #059669;"></i> ${totalVotos} votos`;
                 document.getElementById('resumen-ausentes').innerHTML = `<i class="fas fa-times-circle" style="color: #94a3b8;"></i> ${totalAusentes} ausentes`;
                 document.getElementById('resumen-controversias').innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i> ${totalControversias} controversias`;
+                
+                // Calcular votos por dirigente
+                const dirigentes = {};
+                Object.keys(datosVotos).forEach(orden => {
+                    const voto = datosVotos[orden];
+                    const dir = voto.dirigente || 'Dirigente';
+                    if (!dirigentes[dir]) {
+                        dirigentes[dir] = { votos: 0, ausentes: 0, controversias: 0, total: 0 };
+                    }
+                    if (voto.tipo === 'voto') {
+                        dirigentes[dir].votos++;
+                    } else if (voto.tipo === 'ausente') {
+                        dirigentes[dir].ausentes++;
+                    }
+                    if (voto.controversia) {
+                        dirigentes[dir].controversias++;
+                    }
+                    dirigentes[dir].total++;
+                });
+                
+                // Generar tabla de dirigentes
+                const tablaDirigentes = document.getElementById('tabla-dirigentes');
+                let tablaDirigentesHTML = '';
+                
+                Object.keys(dirigentes).sort().forEach(dir => {
+                    const d = dirigentes[dir];
+                    tablaDirigentesHTML += `
+                        <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;">
+                            <td style="padding: 10px 8px; font-weight: 700; color: #450a0a;">
+                                <i class="fas fa-user" style="color: #94a3b8; margin-right: 4px;"></i>${dir}
+                                ${d.controversias > 0 ? `<span style="background: #fee2e2; color: #dc2626; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 4px;"><i class="fas fa-exclamation-triangle"></i> ${d.controversias}</span>` : ''}
+                            </td>
+                            <td style="padding: 10px 8px; text-align: center; color: #059669; font-weight: 700;">${d.votos}</td>
+                            <td style="padding: 10px 8px; text-align: center; color: #94a3b8; font-weight: 600;">${d.ausentes}</td>
+                            <td style="padding: 10px 8px; text-align: center; color: #dc2626; font-weight: 700;">${d.controversias}</td>
+                            <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #450a0a;">${d.total}</td>
+                        </tr>
+                    `;
+                });
+                
+                if (Object.keys(dirigentes).length === 0) {
+                    tablaDirigentesHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Sin datos de dirigentes</td></tr>`;
+                }
+                
+                tablaDirigentes.innerHTML = tablaDirigentesHTML;
                 
                 // Generar tabla de mesas
                 const tablaMesas = document.getElementById('tabla-mesas');

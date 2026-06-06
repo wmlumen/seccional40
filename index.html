@@ -204,7 +204,8 @@
       const votoActual = state.votos[orden];
       let nuevoEstado = {
         tipo: tipo,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        dirigente: state.veedor || 'Dirigente'
       };
       
       if (votoActual && votoActual.tipo !== tipo) {
