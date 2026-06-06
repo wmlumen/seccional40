@@ -36,6 +36,7 @@
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
     const MAX_VOTOS = 350;
     const PASSWORD = 'Paraguay40';
+    const API_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; // ← Reemplazar con URL real del Web App
     
     // ==================== ESTADO ====================
     let state = {
@@ -139,6 +140,16 @@
           local: encontrado.local
         };
         
+        // Registrar consulta en Google Sheets
+        registrarAccion({
+          cedula: encontrado.cedula,
+          nombre: encontrado.nombreCompleto,
+          mesa: encontrado.mesa,
+          orden: encontrado.orden,
+          estado: 'consulta',
+          accion: 'consultar'
+        });
+        
         // Si la mesa coincide con la seleccionada, mostrar alerta
         if (encontrado.mesa === state.mesaSeleccionada) {
           // Marcar el botón correspondiente automáticamente
@@ -197,6 +208,19 @@
       
       state.votos[orden] = nuevoEstado;
       
+      // Registrar en Google Sheets
+      const elector = state.padron.find(p => p.mesa === state.mesaSeleccionada && p.orden === orden);
+      if (elector) {
+        registrarAccion({
+          cedula: elector.cedula,
+          nombre: elector.nombreCompleto,
+          mesa: elector.mesa,
+          orden: elector.orden,
+          estado: tipo === 'voto' ? 'voto' : (nuevoEstado.controversia ? 'controversia' : tipo),
+          accion: 'marcar'
+        });
+      }
+      
       // Actualizar elector consultado si coincide
       if (state.consultaResultado && state.consultaResultado.orden === orden) {
         state.consultaResultado.marcado = true;
@@ -222,6 +246,33 @@
       const controversias = vals.filter(v => v.controversia).length;
       const electoresEnMesa = state.padron.filter(p => p.mesa === state.mesaSeleccionada).length;
       return { totalVotos, controversias, electoresEnMesa };
+    }
+
+    // ==================== REGISTRAR EN GOOGLE SHEETS ====================
+    async function registrarAccion(datos) {
+      if (!API_URL || API_URL.includes('AKfycb...')) {
+        console.warn('API_URL no configurada. Datos no enviados:', datos);
+        return;
+      }
+      try {
+        await fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            timestamp: new Date().toISOString(),
+            cedula: datos.cedula || '',
+            nombre: datos.nombre || '',
+            mesa: datos.mesa || '',
+            orden: datos.orden || '',
+            estado: datos.estado || '',
+            accion: datos.accion || '',
+            origen: 'seccional40'
+          })
+        });
+      } catch (err) {
+        console.error('Error registrando en Sheets:', err);
+      }
     }
 
     // ==================== RENDER LOGIN ====================
