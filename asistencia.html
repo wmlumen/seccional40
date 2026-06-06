@@ -18,16 +18,16 @@
         }
 
         :root {
-            --primary: #0366d6;
-            --primary-dark: #0255a3;
-            --primary-light: #e8f0fe;
+            --primary: #dc2626;
+            --primary-dark: #991b1b;
+            --primary-light: #fee2e2;
             --success: #28a745;
             --success-light: #d4edda;
-            --danger: #dc3545;
-            --danger-light: #f8d7da;
+            --danger: #991b1b;
+            --danger-light: #fecaca;
             --warning: #ffc107;
             --warning-light: #fff3cd;
-            --bg: #f0f4f8;
+            --bg: #fef2f2;
             --card-bg: #ffffff;
             --text: #1a202c;
             --text-secondary: #4a5568;
@@ -45,7 +45,7 @@
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
             color: var(--text);
             line-height: 1.6;
             height: 100vh;
@@ -109,7 +109,7 @@
 
         /* === Header Card === */
         .header-card {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
             border-radius: var(--radius-lg);
             padding: 16px 20px;
             color: white;
@@ -371,7 +371,7 @@
 
         .career-btn.selected {
             border-color: var(--primary);
-            background: linear-gradient(135deg, var(--primary-light) 0%, #dbeafe 100%);
+            background: linear-gradient(135deg, var(--primary-light) 0%, #fee2e2 100%);
             box-shadow: 0 0 0 3px rgba(3,102,214,0.15);
         }
 
@@ -842,7 +842,7 @@
 
         .career-btn.selected {
             border-color: var(--primary);
-            background: linear-gradient(135deg, var(--primary-light) 0%, #dbeafe 100%);
+            background: linear-gradient(135deg, var(--primary-light) 0%, #fee2e2 100%);
             box-shadow: 0 0 0 3px rgba(3,102,214,0.15);
         }
 
@@ -1418,10 +1418,10 @@
     <div class="main-wrapper">
         <!-- Panel de Control Electoral -->
         <div class="side-panel">
-            <div class="side-panel-header" style="background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);">
+            <div class="side-panel-header" style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);">
                 <div>
                     <div class="panel-title" style="color: #94a3b8;">Panel de Control</div>
-                    <h2 style="color: white;"><i class="fas fa-chart-bar" style="color: #60a5fa;"></i> Participación Electoral</h2>
+                    <h2 style="color: white;"><i class="fas fa-chart-bar" style="color: #f87171;"></i> Participación Electoral</h2>
                 </div>
                 <div class="registros-count" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);">
                     <span class="number" id="votos-total-count">0</span>
@@ -1432,7 +1432,7 @@
                 <div style="padding: 20px;">
                     <!-- Estadísticas generales -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); border-radius: 16px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(30,58,87,0.3);">
+                        <div style="background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%); border-radius: 16px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(127,29,29,0.3);">
                             <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Mesas Activas</div>
                             <div style="font-size: 28px; font-weight: 800; color: white;" id="mesas-activas-count">-</div>
                         </div>
@@ -1445,11 +1445,11 @@
                     <!-- Barra de progreso general -->
                     <div style="background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-size: 13px; font-weight: 700; color: #1e293b;">Progreso General</span>
-                            <span style="font-size: 13px; font-weight: 700; color: #0366d6;" id="progreso-texto">0 / 0</span>
+                            <span style="font-size: 13px; font-weight: 700; color: #450a0a;">Progreso General</span>
+                            <span style="font-size: 13px; font-weight: 700; color: #dc2626;" id="progreso-texto">0 / 0</span>
                         </div>
                         <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
-                            <div id="barra-progreso" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0366d6, #059669); border-radius: 5px; transition: width 0.5s ease;"></div>
+                            <div id="barra-progreso" style="width: 0%; height: 100%; background: linear-gradient(90deg, #dc2626, #059669); border-radius: 5px; transition: width 0.5s ease;"></div>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #64748b;">
                             <span id="resumen-votos"><i class="fas fa-check-circle" style="color: #059669;"></i> 0 votos</span>
@@ -1460,8 +1460,8 @@
 
                     <!-- Tabla de Mesas -->
                     <div style="background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px;">
-                        <div style="font-size: 12px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
-                            <i class="fas fa-table" style="margin-right: 4px; color: #0366d6;"></i>Reporte por Mesa
+                        <div style="font-size: 12px; font-weight: 700; color: #450a0a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+                            <i class="fas fa-table" style="margin-right: 4px; color: #dc2626;"></i>Reporte por Mesa
                         </div>
                         <div style="overflow-x: auto;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
@@ -1486,8 +1486,8 @@
                     </div>
 
                     <!-- Lista de mesas con barras -->
-                    <div style="font-size: 12px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
-                        <i class="fas fa-chart-bar" style="margin-right: 4px; color: #0366d6;"></i>Progreso por Mesa
+                    <div style="font-size: 12px; font-weight: 700; color: #450a0a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+                        <i class="fas fa-chart-bar" style="margin-right: 4px; color: #dc2626;"></i>Progreso por Mesa
                     </div>
                     <div id="lista-mesas" style="display: flex; flex-direction: column; gap: 10px;">
                         <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 12px;">
@@ -1757,13 +1757,13 @@
                 Object.keys(mesas).sort((a, b) => a - b).forEach(mesa => {
                     const m = mesas[mesa];
                     const porcentaje = m.total > 0 ? ((m.votos / m.total) * 100).toFixed(1) : 0;
-                    const color = porcentaje >= 80 ? '#059669' : porcentaje >= 50 ? '#0366d6' : porcentaje >= 30 ? '#d97706' : '#dc2626';
-                    const bgColor = porcentaje >= 80 ? '#ecfdf5' : porcentaje >= 50 ? '#eff6ff' : porcentaje >= 30 ? '#fffbeb' : '#fef2f2';
+                    const color = porcentaje >= 80 ? '#059669' : porcentaje >= 50 ? '#dc2626' : porcentaje >= 30 ? '#d97706' : '#dc2626';
+                    const bgColor = porcentaje >= 80 ? '#ecfdf5' : porcentaje >= 50 ? '#fef2f2' : porcentaje >= 30 ? '#fffbeb' : '#fef2f2';
                     const estadoTexto = porcentaje >= 80 ? 'Excelente' : porcentaje >= 50 ? 'Bueno' : porcentaje >= 30 ? 'Regular' : 'Bajo';
                     
                     tablaHTML += `
                         <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;">
-                            <td style="padding: 10px 8px; font-weight: 700; color: #1e293b;">
+                            <td style="padding: 10px 8px; font-weight: 700; color: #450a0a;">
                                 <i class="fas fa-hashtag" style="color: #94a3b8; margin-right: 4px;"></i>${mesa}
                                 ${m.controversias > 0 ? `<span style="background: #fee2e2; color: #dc2626; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 4px;"><i class="fas fa-exclamation-triangle"></i> ${m.controversias}</span>` : ''}
                             </td>
@@ -1786,13 +1786,13 @@
                 Object.keys(mesas).sort((a, b) => a - b).forEach(mesa => {
                     const m = mesas[mesa];
                     const porcentaje = m.total > 0 ? ((m.votos / m.total) * 100).toFixed(1) : 0;
-                    const color = porcentaje >= 80 ? '#059669' : porcentaje >= 50 ? '#0366d6' : porcentaje >= 30 ? '#d97706' : '#dc2626';
+                    const color = porcentaje >= 80 ? '#059669' : porcentaje >= 50 ? '#dc2626' : porcentaje >= 30 ? '#d97706' : '#dc2626';
                     
                     html += `
                         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
-                                    <span style="font-size: 15px; font-weight: 800; color: #1e293b;">Mesa ${mesa}</span>
+                                    <span style="font-size: 15px; font-weight: 800; color: #450a0a;">Mesa ${mesa}</span>
                                     ${m.controversias > 0 ? `<span style="background: #fef2f2; color: #dc2626; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px; border: 1px solid #fee2e2;"><i class="fas fa-exclamation-triangle"></i> ${m.controversias} problema${m.controversias > 1 ? 's' : ''}</span>` : ''}
                                 </div>
                                 <span style="font-size: 16px; font-weight: 800; color: ${color};">${porcentaje}%</span>

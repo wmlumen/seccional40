@@ -28,7 +28,7 @@
     .btn-mesa:hover { transform: scale(1.05); }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-50">
+    <body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
   <div id="app"></div>
 
   <script>
@@ -289,7 +289,7 @@
       return `
         <div class="min-h-screen flex items-center justify-center p-4">
           <div class="bg-white rounded-[2rem] p-8 md:p-12 shadow-2xl border border-slate-100 max-w-md w-full text-center">
-            <div class="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
             </div>
             <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">SECCIONAL 40</h1>
@@ -298,15 +298,15 @@
             <div class="space-y-4">
               <div class="relative">
                 <input type="text" id="dirigenteInput" placeholder="Cédula del Dirigente" 
-                  class="w-full px-6 py-3 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:outline-none transition-all text-center"
+                  class="w-full px-6 py-3 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center"
                   onkeypress="if(event.key === 'Enter') login()">
               </div>
               <div class="relative">
                 <input type="password" id="passwordInput" placeholder="Contraseña" 
-                  class="w-full px-6 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:outline-none transition-all text-center"
+                  class="w-full px-6 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center"
                   onkeypress="if(event.key === 'Enter') login()">
               </div>
-              <button onclick="login()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl transition-all shadow-lg">
+              <button onclick="login()" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl transition-all shadow-lg">
                 ACCEDER
               </button>
             </div>
@@ -331,33 +331,33 @@
       const cantidadBotones = electoresMesa.length || MAX_VOTOS;
       
       app.innerHTML = `
-        <header class="bg-indigo-900 text-white sticky top-0 z-40 shadow-lg">
+        <header class="bg-red-900 text-white sticky top-0 z-40 shadow-lg">
           <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
-              <div class="p-2 bg-indigo-500 rounded-xl">
+              <div class="p-2 bg-red-500 rounded-xl">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
               </div>
               <div>
                 <h1 class="text-xl font-black uppercase tracking-tighter italic leading-none">SECC. 40</h1>
-                <p class="text-[10px] text-indigo-200 font-bold uppercase tracking-widest opacity-80">Control Electoral</p>
+                <p class="text-[10px] text-red-200 font-bold uppercase tracking-widest opacity-80">Control Electoral</p>
               </div>
             </div>
             
-            <div class="flex items-center gap-2 bg-indigo-950/50 p-1.5 rounded-2xl border border-indigo-800">
+            <div class="flex items-center gap-2 bg-red-950/50 p-1.5 rounded-2xl border border-red-800">
               <div class="flex items-center gap-2 px-3">
-                <span class="text-xs text-indigo-300 font-bold">MESA:</span>
+                <span class="text-xs text-red-300 font-bold">MESA:</span>
                 ${state.mesaBloqueada 
                   ? `<span class="text-lg font-black text-white">${state.mesaSeleccionada}</span>` 
-                  : `<input type="number" id="mesaInput" value="${state.mesaSeleccionada || 1}" min="1" class="w-16 py-1 px-2 rounded-lg text-center font-black text-indigo-900 text-sm border-0 focus:ring-2 focus:ring-indigo-400">`
+                  : `<input type="number" id="mesaInput" value="${state.mesaSeleccionada || 1}" min="1" class="w-16 py-1 px-2 rounded-lg text-center font-black text-red-900 text-sm border-0 focus:ring-2 focus:ring-red-400">`
                 }
                 ${!state.mesaBloqueada 
-                  ? `<button onclick="seleccionarMesa()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-bold text-white transition-all">CARGAR</button>
+                  ? `<button onclick="seleccionarMesa()" class="px-3 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold text-white transition-all">CARGAR</button>
                      <button onclick="bloquearMesa()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white transition-all">BLOQUEAR</button>`
                   : `<button onclick="desbloquearMesa()" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 rounded-lg text-xs font-bold text-white transition-all">DESBLOQUEAR</button>`
                 }
               </div>
               
-              <button onclick="handleTransferir()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 rounded-xl text-xs font-black transition-all text-indigo-950 tracking-widest">
+              <button onclick="handleTransferir()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 rounded-xl text-xs font-black transition-all text-red-950 tracking-widest">
                 POSTA
               </button>
             </div>
@@ -367,7 +367,7 @@
         <main class="max-w-7xl mx-auto p-3 md:p-6">
           ${state.cargando ? `
             <div class="text-center py-12">
-              <div class="inline-block w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+              <div class="inline-block w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mb-4"></div>
               <p class="text-slate-500 font-bold">${state.mensaje}</p>
             </div>
           ` : `
@@ -378,10 +378,10 @@
                   <div class="flex-1 relative w-full">
                     <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                     <input type="text" id="cedulaInput" placeholder="Ingresá cédula del elector" 
-                      class="w-full pl-12 pr-4 py-3 text-lg font-bold border-2 border-slate-100 rounded-xl focus:border-indigo-500 focus:outline-none transition-all"
+                      class="w-full pl-12 pr-4 py-3 text-lg font-bold border-2 border-slate-100 rounded-xl focus:border-red-500 focus:outline-none transition-all"
                       onkeypress="if(event.key === 'Enter') buscarCedula()">
                   </div>
-                  <button onclick="buscarCedula()" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl transition-all shadow-lg flex items-center gap-2 whitespace-nowrap">
+                  <button onclick="buscarCedula()" class="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition-all shadow-lg flex items-center gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     BUSCAR
                   </button>
@@ -396,8 +396,8 @@
                   <p class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Electores</p>
                   <span class="text-2xl font-black text-slate-900">${cantidadBotones}</span>
                 </div>
-                <div class="bg-indigo-600 p-4 rounded-[1.5rem] shadow-lg text-white text-center">
-                  <p class="text-[10px] uppercase font-black text-indigo-200 tracking-widest">Votos</p>
+                <div class="bg-red-600 p-4 rounded-[1.5rem] shadow-lg text-white text-center">
+                  <p class="text-[10px] uppercase font-black text-red-200 tracking-widest">Votos</p>
                   <span class="text-2xl font-black">${stats.totalVotos}</span>
                 </div>
                 <div class="${stats.controversias > 0 ? 'bg-rose-600 text-white' : 'bg-white text-slate-900'} p-4 rounded-[1.5rem] shadow-lg border ${stats.controversias > 0 ? 'border-rose-500' : 'border-slate-100'} text-center">
@@ -414,7 +414,7 @@
                     const voto = state.votos[orden];
                     const elector = electoresMesa.find(e => e.orden === orden);
                     
-                    let btnClass = "bg-white text-slate-400 border border-slate-200 hover:border-indigo-300 hover:text-indigo-600";
+                    let btnClass = "bg-white text-slate-400 border border-slate-200 hover:border-red-300 hover:text-red-600";
                     
                     if (voto?.controversia) {
                       btnClass = "bg-rose-600 text-white font-black border-rose-700";
@@ -423,7 +423,7 @@
                     } else if (voto?.tipo === 'ausente') {
                       btnClass = "bg-slate-200 text-slate-500 font-bold border-slate-300";
                     } else if (elector) {
-                      btnClass = "bg-indigo-50 text-indigo-400 border border-indigo-200 font-bold";
+                      btnClass = "bg-red-50 text-red-400 border border-red-200 font-bold";
                     }
                     
                     const tooltip = elector ? `title="${elector.nombreCompleto}"` : '';
@@ -446,7 +446,7 @@
                 
                 <div class="mt-4 flex flex-wrap gap-3 justify-center text-xs">
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-white border border-slate-200 rounded"></div><span>Sin marcar</span></div>
-                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-indigo-50 border border-indigo-200 rounded"></div><span>En padrón</span></div>
+                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div><span>En padrón</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-emerald-500 rounded"></div><span>Votó</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-slate-200 rounded"></div><span>Ausente</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-rose-600 rounded"></div><span>Controversia</span></div>
@@ -519,7 +519,7 @@
         <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="state.mostrarOpciones=null; render();">
           <div class="bg-white rounded-[2rem] w-full max-w-sm p-6 shadow-2xl animate-in" onclick="event.stopPropagation()">
             <div class="text-center mb-6">
-              <span class="text-4xl font-black text-indigo-900">${orden}</span>
+              <span class="text-4xl font-black text-red-900">${orden}</span>
               ${elector ? `<p class="text-sm font-bold text-slate-600 mt-1">${elector.nombreCompleto}</p>` : ''}
             </div>
             
@@ -557,7 +557,7 @@
             <div class="bg-slate-50 p-8 rounded-[2rem] inline-block mb-6 border-2 border-dashed border-slate-300">
               <img src="${qrUrl}" alt="QR" class="w-48 h-48 mx-auto">
             </div>
-            <button onclick="state.showQR=false; render()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl text-sm tracking-widest shadow-xl">
+            <button onclick="state.showQR=false; render()" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl text-sm tracking-widest shadow-xl">
               CERRAR
             </button>
           </div>
