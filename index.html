@@ -34,6 +34,7 @@
   <script>
     // ==================== CONFIGURACION ====================
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
+    const DIRIGENTES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?gid=79263661&single=true&output=csv';
     const MAX_VOTOS = 350;
     const PASSWORD = 'Paraguay40';
     const API_URL = ''; // ← Pegar aquí la URL del Web App de Google Apps Script (opcional)
@@ -44,6 +45,7 @@
       cargando: false,
       mensaje: '',
       padron: [],
+      dirigentes: [],
       mesaSeleccionada: null,
       mesaBloqueada: false,
       votos: {},
@@ -57,10 +59,12 @@
     // ==================== LOGIN ====================
     function login() {
       const input = document.getElementById('passwordInput');
-      const dirigenteInput = document.getElementById('dirigenteInput');
+      const dirigenteSelect = document.getElementById('dirigenteSelect');
       if (input && input.value === PASSWORD) {
         state.autenticado = true;
-        state.veedor = dirigenteInput && dirigenteInput.value.trim() ? dirigenteInput.value.trim() : 'Dirigente';
+        const selectedOption = dirigenteSelect ? dirigenteSelect.options[dirigenteSelect.selectedIndex] : null;
+        state.veedor = selectedOption ? selectedOption.value : 'Dirigente';
+        state.veedorNombre = selectedOption ? selectedOption.text : 'Dirigente';
         cargarPadron();
       } else {
         alert('Contraseña incorrecta. Intenta nuevamente.');
@@ -120,6 +124,34 @@
         setTimeout(cargarPadron, 3000);
       }
       render();
+    }
+
+    // ==================== CARGAR DIRIGENTES ====================
+    async function cargarDirigentes() {
+      try {
+        const response = await fetch(DIRIGENTES_CSV_URL);
+        const csvText = await response.text();
+        const lineas = csvText.split('\n').filter(l => l.trim());
+        
+        const dirigentes = [];
+        for (let i = 1; i < lineas.length; i++) {
+          const partes = lineas[i].split(',');
+          if (partes.length >= 2) {
+            const cedula = partes[0].replace(/\./g, '').trim();
+            const nombre = partes[1].trim();
+            if (cedula && nombre) {
+              dirigentes.push({ cedula, nombre });
+            }
+          }
+        }
+        
+        state.dirigentes = dirigentes;
+        // Guardar en localStorage para asistencia.html
+        localStorage.setItem('seccional40_dirigentes', JSON.stringify(dirigentes));
+        console.log('Dirigentes cargados:', dirigentes.length);
+      } catch (error) {
+        console.error('Error cargando dirigentes:', error);
+      }
     }
 
     // ==================== BUSCAR POR CEDULA ====================
@@ -296,11 +328,16 @@
             <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">SECCIONAL 40</h1>
             <p class="text-slate-500 text-sm mb-8">Sistema de Control Electoral</p>
             
-            <div class="space-y-4">
+             <div class="space-y-4">
               <div class="relative">
-                <input type="text" id="dirigenteInput" placeholder="Cédula del Dirigente" 
-                  class="w-full px-6 py-3 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center"
-                  onkeypress="if(event.key === 'Enter') login()">
+                <select id="dirigenteSelect" 
+                  class="w-full px-6 py-3 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center appearance-none cursor-pointer bg-white">
+                  <option value="">Seleccionar Dirigente</option>
+                  ${state.dirigentes.map(d => `<option value="${d.cedula}">${d.nombre}</option>`).join('')}
+                </select>
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
               </div>
               <div class="relative">
                 <input type="password" id="passwordInput" placeholder="Contraseña" 
@@ -567,6 +604,8 @@
     }
 
     // ==================== INICIALIZAR ====================
+    // Cargar dirigentes al inicio
+    cargarDirigentes();
     render();
   </script>
 </body>
