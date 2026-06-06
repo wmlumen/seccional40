@@ -32,9 +32,9 @@ function doPost(e) {
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_NAME);
       sheet.appendRow([
-        'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'origen'
+        'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'dirigenteNombre', 'origen'
       ]);
-      sheet.getRange(1, 1, 1, 9)
+      sheet.getRange(1, 1, 1, 10)
         .setFontWeight('bold')
         .setBackground('#1e3a8a')
         .setFontColor('#ffffff');
@@ -50,6 +50,7 @@ function doPost(e) {
       data.estado || '',  // voto, ausente, controversia, consulta
       data.accion || '',  // marcar, consultar
       data.dirigente || 'Dirigente',
+      data.dirigenteNombre || 'Dirigente',
       data.origen || 'web'
     ];
     
