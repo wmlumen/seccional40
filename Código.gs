@@ -174,6 +174,15 @@ function actualizarResumen(ss) {
 }
 
 /**
+ * Se ejecuta automáticamente al abrir la hoja
+ * Actualiza el resumen sin necesidad de trigger manual
+ */
+function onOpen() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  actualizarResumen(ss);
+}
+
+/**
  * Utilidad: devuelve JSON con headers CORS
  */
 function jsonResponse(obj) {
