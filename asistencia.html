@@ -32,7 +32,7 @@
             --text: #1a202c;
             --text-secondary: #4a5568;
             --text-muted: #718096;
-            --border: #e2e8f0;
+            --border: #fecaca;
             --border-light: #edf2f7;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
             --shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -495,7 +495,7 @@
         }
 
         .status-msg.info {
-            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
             border: 1px solid var(--border);
             color: var(--text-secondary);
         }
@@ -603,8 +603,8 @@
         }
 
         .sync-box {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 1px solid #bae6fd;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fecaca;
             border-radius: var(--radius);
             padding: 12px;
             position: relative;
@@ -966,7 +966,7 @@
         }
 
         .status-msg.info {
-            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
             border: 1px solid var(--border);
             color: var(--text-secondary);
         }
@@ -1073,8 +1073,8 @@
         }
 
         .sync-box {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 1px solid #bae6fd;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fecaca;
             border-radius: var(--radius);
             padding: 18px;
             position: relative;
@@ -1143,7 +1143,7 @@
         .side-panel-header {
             padding: 14px 16px;
             border-bottom: 2px solid var(--border-light);
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1206,12 +1206,12 @@
         }
 
         .table-wrap::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #fecaca;
             border-radius: 3px;
         }
 
         .table-wrap::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: #fca5a5;
         }
 
         table {
@@ -1224,7 +1224,7 @@
         thead th {
             position: sticky;
             top: 0;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%);
             border-bottom: 2px solid var(--border);
             padding: 8px 10px;
             text-align: left;
@@ -1258,7 +1258,7 @@
         }
 
         tbody tr:hover {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%);
             transform: scale(1.01);
             box-shadow: var(--shadow-sm);
             z-index: 1;
@@ -1312,7 +1312,7 @@
         }
 
         .registro-row:hover {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fef2f2 100%);
         }
 
         .hora-cell {
@@ -1420,7 +1420,7 @@
         <div class="side-panel">
             <div class="side-panel-header" style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);">
                 <div>
-                    <div class="panel-title" style="color: #94a3b8;">Panel de Control</div>
+                    <div class="panel-title" style="color: #fca5a5;">Panel de Control</div>
                     <h2 style="color: white;"><i class="fas fa-chart-bar" style="color: #f87171;"></i> Participación Electoral</h2>
                 </div>
                 <div class="registros-count" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);">
@@ -1433,11 +1433,11 @@
                     <!-- Estadísticas generales -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                         <div style="background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%); border-radius: 16px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(127,29,29,0.3);">
-                            <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Mesas Activas</div>
+                            <div style="font-size: 10px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Mesas Activas</div>
                             <div style="font-size: 28px; font-weight: 800; color: white;" id="mesas-activas-count">-</div>
                         </div>
-                        <div style="background: linear-gradient(135deg, #064e3b 0%, #059669 100%); border-radius: 16px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(5,150,105,0.3);">
-                            <div style="font-size: 10px; font-weight: 700; color: #a7f3d0; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Participación</div>
+                        <div style="background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%); border-radius: 16px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(127,29,29,0.3);">
+                            <div style="font-size: 10px; font-weight: 700; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Participación</div>
                             <div style="font-size: 28px; font-weight: 800; color: white;" id="participacion-porcentaje">0%</div>
                         </div>
                     </div>
@@ -1448,12 +1448,12 @@
                             <span style="font-size: 13px; font-weight: 700; color: #450a0a;">Progreso General</span>
                             <span style="font-size: 13px; font-weight: 700; color: #dc2626;" id="progreso-texto">0 / 0</span>
                         </div>
-                        <div style="width: 100%; height: 10px; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
-                            <div id="barra-progreso" style="width: 0%; height: 100%; background: linear-gradient(90deg, #dc2626, #059669); border-radius: 5px; transition: width 0.5s ease;"></div>
+                        <div style="width: 100%; height: 10px; background: #fef2f2; border-radius: 5px; overflow: hidden;">
+                            <div id="barra-progreso" style="width: 0%; height: 100%; background: linear-gradient(90deg, #dc2626, #dc2626); border-radius: 5px; transition: width 0.5s ease;"></div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #64748b;">
-                            <span id="resumen-votos"><i class="fas fa-check-circle" style="color: #059669;"></i> 0 votos</span>
-                            <span id="resumen-ausentes"><i class="fas fa-times-circle" style="color: #94a3b8;"></i> 0 ausentes</span>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #b91c1c;">
+                            <span id="resumen-votos"><i class="fas fa-check-circle" style="color: #dc2626;"></i> 0 votos</span>
+                            <span id="resumen-ausentes"><i class="fas fa-times-circle" style="color: #fca5a5;"></i> 0 ausentes</span>
                             <span id="resumen-controversias"><i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i> 0 controversias</span>
                         </div>
                     </div>
@@ -1466,17 +1466,17 @@
                         <div style="overflow-x: auto;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                                 <thead>
-                                    <tr style="background: #f8fafc;">
-                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Dirigente</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Votos</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Ausentes</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Controversias</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Total</th>
+                                    <tr style="background: #fef2f2;">
+                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Dirigente</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Votos</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Ausentes</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Controversias</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-dirigentes">
                                     <tr>
-                                        <td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">
+                                        <td colspan="5" style="text-align: center; padding: 20px; color: #fca5a5;">
                                             <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Cargando datos...
                                         </td>
                                     </tr>
@@ -1493,17 +1493,17 @@
                         <div style="overflow-x: auto;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                                 <thead>
-                                    <tr style="background: #f8fafc;">
-                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Mesa</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Total</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Votos</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">%</th>
-                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Estado</th>
+                                    <tr style="background: #fef2f2;">
+                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Mesa</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Total</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Votos</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">%</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-mesas">
                                     <tr>
-                                        <td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">
+                                        <td colspan="5" style="text-align: center; padding: 20px; color: #fca5a5;">
                                             <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Cargando datos...
                                         </td>
                                     </tr>
@@ -1517,21 +1517,21 @@
                         <i class="fas fa-chart-bar" style="margin-right: 4px; color: #dc2626;"></i>Progreso por Mesa
                     </div>
                     <div id="lista-mesas" style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="text-align: center; color: #94a3b8; padding: 20px; font-size: 12px;">
+                        <div style="text-align: center; color: #fca5a5; padding: 20px; font-size: 12px;">
                             <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
                             Cargando datos...
                         </div>
                     </div>
 
                     <!-- Leyenda -->
-                    <div style="margin-top: 20px; padding-top: 16px; border-top: 2px solid #f1f5f9; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
-                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; font-weight: 600;">
-                            <div style="width: 12px; height: 12px; background: #059669; border-radius: 3px;"></div> Votó
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 2px solid #fef2f2; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #7f1d1d; font-weight: 600;">
+                            <div style="width: 12px; height: 12px; background: #dc2626; border-radius: 3px;"></div> Votó
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; font-weight: 600;">
-                            <div style="width: 12px; height: 12px; background: #94a3b8; border-radius: 3px;"></div> Ausente
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #7f1d1d; font-weight: 600;">
+                            <div style="width: 12px; height: 12px; background: #fca5a5; border-radius: 3px;"></div> Ausente
                         </div>
-                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #475569; font-weight: 600;">
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #7f1d1d; font-weight: 600;">
                             <div style="width: 12px; height: 12px; background: #dc2626; border-radius: 3px;"></div> Controversia
                         </div>
                     </div>
@@ -1721,14 +1721,14 @@
                 // Si no hay datos, mostrar mensaje
                 if (!padron || padron.length === 0) {
                     const mensajeHTML = `
-                        <div style="text-align: center; color: #94a3b8; padding: 30px;">
-                            <i class="fas fa-info-circle" style="font-size: 32px; margin-bottom: 12px; display: block; color: #cbd5e1;"></i>
+                        <div style="text-align: center; color: #fca5a5; padding: 30px;">
+                            <i class="fas fa-info-circle" style="font-size: 32px; margin-bottom: 12px; display: block; color: #fecaca;"></i>
                             <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">No hay datos de mesas cargados</p>
                             <p style="font-size: 12px;">Acceda al sistema de votación para cargar el padrón electoral</p>
                         </div>
                     `;
                     document.getElementById('lista-mesas').innerHTML = mensajeHTML;
-                    document.getElementById('tabla-mesas').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Sin datos disponibles</td></tr>`;
+                    document.getElementById('tabla-mesas').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #fca5a5;">Sin datos disponibles</td></tr>`;
                     return;
                 }
                 
@@ -1773,8 +1773,8 @@
                 document.getElementById('barra-progreso').style.width = participacion + '%';
                 
                 // Actualizar resumen
-                document.getElementById('resumen-votos').innerHTML = `<i class="fas fa-check-circle" style="color: #059669;"></i> ${totalVotos} votos`;
-                document.getElementById('resumen-ausentes').innerHTML = `<i class="fas fa-times-circle" style="color: #94a3b8;"></i> ${totalAusentes} ausentes`;
+                document.getElementById('resumen-votos').innerHTML = `<i class="fas fa-check-circle" style="color: #dc2626;"></i> ${totalVotos} votos`;
+                document.getElementById('resumen-ausentes').innerHTML = `<i class="fas fa-times-circle" style="color: #fca5a5;"></i> ${totalAusentes} ausentes`;
                 document.getElementById('resumen-controversias').innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i> ${totalControversias} controversias`;
                 
                 // Calcular votos por dirigente
@@ -1803,13 +1803,13 @@
                 Object.keys(dirigentes).sort().forEach(dir => {
                     const d = dirigentes[dir];
                     tablaDirigentesHTML += `
-                        <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;">
+                        <tr style="border-bottom: 1px solid #fef2f2; transition: all 0.2s;">
                             <td style="padding: 10px 8px; font-weight: 700; color: #450a0a;">
-                                <i class="fas fa-user" style="color: #94a3b8; margin-right: 4px;"></i>${dir}
+                                <i class="fas fa-user" style="color: #fca5a5; margin-right: 4px;"></i>${dir}
                                 ${d.controversias > 0 ? `<span style="background: #fee2e2; color: #dc2626; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 4px;"><i class="fas fa-exclamation-triangle"></i> ${d.controversias}</span>` : ''}
                             </td>
-                            <td style="padding: 10px 8px; text-align: center; color: #059669; font-weight: 700;">${d.votos}</td>
-                            <td style="padding: 10px 8px; text-align: center; color: #94a3b8; font-weight: 600;">${d.ausentes}</td>
+                            <td style="padding: 10px 8px; text-align: center; color: #dc2626; font-weight: 700;">${d.votos}</td>
+                            <td style="padding: 10px 8px; text-align: center; color: #fca5a5; font-weight: 600;">${d.ausentes}</td>
                             <td style="padding: 10px 8px; text-align: center; color: #dc2626; font-weight: 700;">${d.controversias}</td>
                             <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #450a0a;">${d.total}</td>
                         </tr>
@@ -1817,7 +1817,7 @@
                 });
                 
                 if (Object.keys(dirigentes).length === 0) {
-                    tablaDirigentesHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Sin datos de dirigentes</td></tr>`;
+                    tablaDirigentesHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #fca5a5;">Sin datos de dirigentes</td></tr>`;
                 }
                 
                 tablaDirigentes.innerHTML = tablaDirigentesHTML;
@@ -1829,18 +1829,18 @@
                 Object.keys(mesas).sort((a, b) => a - b).forEach(mesa => {
                     const m = mesas[mesa];
                     const porcentaje = m.total > 0 ? ((m.votos / m.total) * 100).toFixed(1) : 0;
-                    const color = porcentaje >= 80 ? '#059669' : porcentaje >= 50 ? '#dc2626' : porcentaje >= 30 ? '#d97706' : '#dc2626';
-                    const bgColor = porcentaje >= 80 ? '#ecfdf5' : porcentaje >= 50 ? '#fef2f2' : porcentaje >= 30 ? '#fffbeb' : '#fef2f2';
+                    const color = porcentaje >= 80 ? '#dc2626' : porcentaje >= 50 ? '#dc2626' : porcentaje >= 30 ? '#dc2626' : '#dc2626';
+                    const bgColor = porcentaje >= 80 ? '#fef2f2' : porcentaje >= 50 ? '#fef2f2' : porcentaje >= 30 ? '#fef2f2' : '#fef2f2';
                     const estadoTexto = porcentaje >= 80 ? 'Excelente' : porcentaje >= 50 ? 'Bueno' : porcentaje >= 30 ? 'Regular' : 'Bajo';
                     
                     tablaHTML += `
-                        <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;">
+                        <tr style="border-bottom: 1px solid #fef2f2; transition: all 0.2s;">
                             <td style="padding: 10px 8px; font-weight: 700; color: #450a0a;">
-                                <i class="fas fa-hashtag" style="color: #94a3b8; margin-right: 4px;"></i>${mesa}
+                                <i class="fas fa-hashtag" style="color: #fca5a5; margin-right: 4px;"></i>${mesa}
                                 ${m.controversias > 0 ? `<span style="background: #fee2e2; color: #dc2626; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 4px;"><i class="fas fa-exclamation-triangle"></i> ${m.controversias}</span>` : ''}
                             </td>
-                            <td style="padding: 10px 8px; text-align: center; color: #475569; font-weight: 600;">${m.total}</td>
-                            <td style="padding: 10px 8px; text-align: center; color: #059669; font-weight: 700;">${m.votos}</td>
+                            <td style="padding: 10px 8px; text-align: center; color: #7f1d1d; font-weight: 600;">${m.total}</td>
+                            <td style="padding: 10px 8px; text-align: center; color: #dc2626; font-weight: 700;">${m.votos}</td>
                             <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: ${color};">${porcentaje}%</td>
                             <td style="padding: 10px 8px; text-align: center;">
                                 <span style="background: ${bgColor}; color: ${color}; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px;">${estadoTexto}</span>
@@ -1858,10 +1858,10 @@
                 Object.keys(mesas).sort((a, b) => a - b).forEach(mesa => {
                     const m = mesas[mesa];
                     const porcentaje = m.total > 0 ? ((m.votos / m.total) * 100).toFixed(1) : 0;
-                    const color = porcentaje >= 80 ? '#059669' : porcentaje >= 50 ? '#dc2626' : porcentaje >= 30 ? '#d97706' : '#dc2626';
+                    const color = porcentaje >= 80 ? '#dc2626' : porcentaje >= 50 ? '#dc2626' : porcentaje >= 30 ? '#dc2626' : '#dc2626';
                     
                     html += `
-                        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="background: #ffffff; border: 1px solid #fecaca; border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <span style="font-size: 15px; font-weight: 800; color: #450a0a;">Mesa ${mesa}</span>
@@ -1869,12 +1869,12 @@
                                 </div>
                                 <span style="font-size: 16px; font-weight: 800; color: ${color};">${porcentaje}%</span>
                             </div>
-                            <div style="width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                            <div style="width: 100%; height: 8px; background: #fef2f2; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
                                 <div style="width: ${porcentaje}%; height: 100%; background: linear-gradient(90deg, ${color}, ${color}dd); border-radius: 4px; transition: width 0.5s ease;"></div>
                             </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b; font-weight: 500;">
-                                <span><i class="fas fa-check-circle" style="color: #059669;"></i> ${m.votos} votos</span>
-                                <span><i class="fas fa-times-circle" style="color: #94a3b8;"></i> ${m.ausentes} ausentes</span>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #b91c1c; font-weight: 500;">
+                                <span><i class="fas fa-check-circle" style="color: #dc2626;"></i> ${m.votos} votos</span>
+                                <span><i class="fas fa-times-circle" style="color: #fca5a5;"></i> ${m.ausentes} ausentes</span>
                                 <span style="font-weight: 700;">${m.total} electores</span>
                             </div>
                         </div>
@@ -1889,7 +1889,7 @@
                     <div style="text-align: center; color: #dc2626; padding: 30px;">
                         <i class="fas fa-exclamation-circle" style="font-size: 32px; margin-bottom: 12px; display: block;"></i>
                         <p style="font-size: 14px; font-weight: 600;">Error cargando datos del panel</p>
-                        <p style="font-size: 12px; color: #94a3b8;">Intente recargar la página</p>
+                        <p style="font-size: 12px; color: #fca5a5;">Intente recargar la página</p>
                     </div>
                 `;
                 document.getElementById('lista-mesas').innerHTML = errorHTML;

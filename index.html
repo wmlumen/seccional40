@@ -163,7 +163,7 @@
             if (btn) {
               btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
               btn.style.ring = '4px';
-              btn.style.ringColor = 'amber';
+              btn.style.ringColor = 'red';
             }
           }, 300);
         }
@@ -353,12 +353,12 @@
                 }
                 ${!state.mesaBloqueada 
                   ? `<button onclick="seleccionarMesa()" class="px-3 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold text-white transition-all">CARGAR</button>
-                     <button onclick="bloquearMesa()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white transition-all">BLOQUEAR</button>`
+                     <button onclick="bloquearMesa()" class="px-3 py-1 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold text-white transition-all">BLOQUEAR</button>`
                   : `<button onclick="desbloquearMesa()" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 rounded-lg text-xs font-bold text-white transition-all">DESBLOQUEAR</button>`
                 }
               </div>
               
-              <button onclick="handleTransferir()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 rounded-xl text-xs font-black transition-all text-red-950 tracking-widest">
+              <button onclick="handleTransferir()" class="px-4 py-2 bg-red-500 hover:bg-red-400 rounded-xl text-xs font-black transition-all text-red-950 tracking-widest">
                 POSTA
               </button>
             </div>
@@ -420,7 +420,7 @@
                     if (voto?.controversia) {
                       btnClass = "bg-rose-600 text-white font-black border-rose-700";
                     } else if (voto?.tipo === 'voto') {
-                      btnClass = "bg-emerald-500 text-white font-bold border-emerald-600";
+                      btnClass = "bg-red-500 text-white font-bold border-red-600";
                     } else if (voto?.tipo === 'ausente') {
                       btnClass = "bg-slate-200 text-slate-500 font-bold border-slate-300";
                     } else if (elector) {
@@ -448,7 +448,7 @@
                 <div class="mt-4 flex flex-wrap gap-3 justify-center text-xs">
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-white border border-slate-200 rounded"></div><span>Sin marcar</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div><span>En padrón</span></div>
-                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-emerald-500 rounded"></div><span>Votó</span></div>
+                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-500 rounded"></div><span>Votó</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-slate-200 rounded"></div><span>Ausente</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-rose-600 rounded"></div><span>Controversia</span></div>
                 </div>
@@ -484,21 +484,21 @@
       const esMesaActual = r.mesa === state.mesaSeleccionada;
       
       return `
-        <div class="mt-3 ${esMesaActual ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'} border-2 rounded-xl p-4 flex items-center gap-3 animate-in">
-          <div class="p-2 ${esMesaActual ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'} rounded-full">
+        <div class="mt-3 ${esMesaActual ? 'bg-red-50 border-red-100' : 'bg-red-50 border-red-100'} border-2 rounded-xl p-4 flex items-center gap-3 animate-in">
+          <div class="p-2 ${esMesaActual ? 'bg-red-100 text-red-600' : 'bg-red-100 text-red-600'} rounded-full">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
           </div>
           <div class="flex-1">
-            <p class="font-black ${esMesaActual ? 'text-emerald-800' : 'text-amber-800'} text-sm">${r.nombre}</p>
+            <p class="font-black ${esMesaActual ? 'text-red-800' : 'text-red-800'} text-sm">${r.nombre}</p>
             <div class="flex gap-3 text-xs mt-1">
-              <span class="${esMesaActual ? 'text-emerald-600' : 'text-amber-600'} font-bold">Cédula: ${r.cedula}</span>
+              <span class="${esMesaActual ? 'text-red-600' : 'text-red-600'} font-bold">Cédula: ${r.cedula}</span>
               <span class="font-bold text-slate-500">Mesa: ${r.mesa}</span>
               <span class="font-bold text-slate-500">Orden: ${r.orden}</span>
             </div>
-            ${!esMesaActual ? `<p class="text-xs text-amber-700 mt-1 font-bold">⚠️ Esta persona vota en la MESA ${r.mesa}, no en esta mesa</p>` : ''}
+            ${!esMesaActual ? `<p class="text-xs text-red-700 mt-1 font-bold">⚠️ Esta persona vota en la MESA ${r.mesa}, no en esta mesa</p>` : ''}
           </div>
           ${esMesaActual ? `
-            <button onclick="marcarVoto(${r.orden}, 'voto'); state.consultaResultado=null; render();" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-all">
+            <button onclick="marcarVoto(${r.orden}, 'voto'); state.consultaResultado=null; render();" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition-all">
               MARCAR VOTO
             </button>
           ` : ''}
@@ -526,7 +526,7 @@
             
             <div class="space-y-3">
               <button onclick="marcarVoto(${orden}, 'voto'); state.mostrarOpciones=null; render();" 
-                class="w-full flex items-center justify-center gap-3 p-4 bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-200 rounded-[1.5rem] transition-all font-black text-emerald-800">
+                class="w-full flex items-center justify-center gap-3 p-4 bg-red-50 hover:bg-red-100 border-2 border-red-200 rounded-[1.5rem] transition-all font-black text-red-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                 VOTÓ
               </button>
