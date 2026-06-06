@@ -7,8 +7,8 @@ Sistema web para control de votación electoral - Seccional 40.
 | Enlace | Descripción |
 |--------|-------------|
 | 🌐 **Sitio Principal** | [https://wmlumen.github.io/seccional40/](https://wmlumen.github.io/seccional40/) |
-| 🗳️ **Sistema de Votación** | [https://wmlumen.github.io/seccional40/public/index.html](https://wmlumen.github.io/seccional40/public/index.html) |
-| 📊 **Panel de Reporte** | [https://wmlumen.github.io/seccional40/public/asistencia.html](https://wmlumen.github.io/seccional40/public/asistencia.html) |
+| 🗳️ **Sistema de Votación** | [https://wmlumen.github.io/seccional40/index.html](https://wmlumen.github.io/seccional40/index.html) |
+| 📊 **Panel de Reporte** | [https://wmlumen.github.io/seccional40/asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) |
 | 📁 **Repositorio** | [https://github.com/wmlumen/seccional40](https://github.com/wmlumen/seccional40) |
 
 ## 📝 Contraseña de Acceso
