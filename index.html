@@ -57,8 +57,10 @@
     // ==================== LOGIN ====================
     function login() {
       const input = document.getElementById('passwordInput');
+      const dirigenteInput = document.getElementById('dirigenteInput');
       if (input && input.value === PASSWORD) {
         state.autenticado = true;
+        state.veedor = dirigenteInput && dirigenteInput.value.trim() ? dirigenteInput.value.trim() : 'Dirigente';
         cargarPadron();
       } else {
         alert('Contraseña incorrecta. Intenta nuevamente.');
@@ -256,7 +258,7 @@
 
     // ==================== REGISTRAR EN GOOGLE SHEETS ====================
     async function registrarAccion(datos) {
-      if (!API_URL || API_URL.includes('AKfycb...')) {
+      if (!API_URL || API_URL === '') {
         console.warn('API_URL no configurada. Datos no enviados:', datos);
         return;
       }
@@ -273,6 +275,7 @@
             orden: datos.orden || '',
             estado: datos.estado || '',
             accion: datos.accion || '',
+            dirigente: state.veedor || 'Dirigente',
             origen: 'seccional40'
           })
         });
@@ -294,7 +297,12 @@
             
             <div class="space-y-4">
               <div class="relative">
-                <input type="password" id="passwordInput" placeholder="Ingrese contraseña" 
+                <input type="text" id="dirigenteInput" placeholder="Nombre del Dirigente" 
+                  class="w-full px-6 py-3 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:outline-none transition-all text-center"
+                  onkeypress="if(event.key === 'Enter') login()">
+              </div>
+              <div class="relative">
+                <input type="password" id="passwordInput" placeholder="Contraseña" 
                   class="w-full px-6 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-indigo-500 focus:outline-none transition-all text-center"
                   onkeypress="if(event.key === 'Enter') login()">
               </div>

@@ -32,9 +32,9 @@ function doPost(e) {
     if (!sheet) {
       sheet = ss.insertSheet(SHEET_NAME);
       sheet.appendRow([
-        'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'origen'
+        'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'origen'
       ]);
-      sheet.getRange(1, 1, 1, 8)
+      sheet.getRange(1, 1, 1, 9)
         .setFontWeight('bold')
         .setBackground('#1e3a8a')
         .setFontColor('#ffffff');
@@ -49,6 +49,7 @@ function doPost(e) {
       data.orden || '',
       data.estado || '',  // voto, ausente, controversia, consulta
       data.accion || '',  // marcar, consultar
+      data.dirigente || 'Dirigente',
       data.origen || 'web'
     ];
     
@@ -103,7 +104,7 @@ function doGet(e) {
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ mesa: mesaNum, registros: [] });
       }
-      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).getValues();
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getValues();
       const registros = allData
         .filter(row => parseInt(row[3]) === mesaNum)
         .map(row => ({
@@ -113,7 +114,8 @@ function doGet(e) {
           mesa: row[3],
           orden: row[4],
           estado: row[5],
-          accion: row[6]
+          accion: row[6],
+          dirigente: row[7]
         }));
       return jsonResponse({ mesa: mesaNum, registros: registros });
     }
@@ -143,7 +145,7 @@ function actualizarResumen(ss) {
   const dataSheet = ss.getSheetByName(SHEET_NAME);
   if (!dataSheet || dataSheet.getLastRow() < 2) return;
   
-  const data = dataSheet.getRange(2, 1, dataSheet.getLastRow() - 1, 8).getValues();
+  const data = dataSheet.getRange(2, 1, dataSheet.getLastRow() - 1, 9).getValues();
   
   // Agrupar por mesa
   const stats = {};
