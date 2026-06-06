@@ -1515,16 +1515,16 @@
             </div>
         </div>
 
-        <!-- Panel derecho: Asistencias recientes (con scroll propio) -->
+        <!-- Panel derecho: Votos recientes (con scroll propio) -->
         <div class="side-panel" style="margin-top: 16px;">
             <div class="side-panel-header">
                 <div>
                     <div class="panel-title">Panel rápido</div>
-                    <h2>Asistencias recientes</h2>
+                    <h2>Votos recientes</h2>
                 </div>
                 <div class="registros-count">
-                    <span class="number" id="public-attendance-count">0</span>
-                    <span class="label">asistentes</span>
+                    <span class="number" id="votos-recientes-count">0</span>
+                    <span class="label">votos</span>
                 </div>
             </div>
             <div class="table-wrap">
@@ -1532,12 +1532,12 @@
                     <thead>
                         <tr>
                             <th>Hora</th>
-                            <th>Alumno</th>
-                            <th>Doc.</th>
-                            <th>Carrera</th>
+                            <th>Elector</th>
+                            <th>Cédula</th>
+                            <th>Mesa</th>
                         </tr>
                     </thead>
-                    <tbody id="public-attendance-body">
+                    <tbody id="votos-recientes-body">
                         <tr>
                             <td colspan="4" class="empty-state">
                                 <i class="fas fa-inbox"></i>
@@ -1551,72 +1551,63 @@
     </div>
 
     <script>
-        // Override renderPublicAttendancePreview para usar estilos personalizados de esta pagina
-        window.renderPublicAttendancePreview = function(records) {
-            const tbody = document.getElementById('public-attendance-body');
-            const counter = document.getElementById('public-attendance-count');
+        // ==================== VOTOS RECIENTES ====================
+        function renderVotosRecientes() {
+            const tbody = document.getElementById('votos-recientes-body');
+            const counter = document.getElementById('votos-recientes-count');
             if (!tbody) return;
 
-            const safeRecords = Array.isArray(records) ? records : [];
+            // Leer datos del sistema de votación (localStorage de index.html)
+            const datosGuardados = localStorage.getItem('seccional40_votos');
+            const datosVotos = datosGuardados ? JSON.parse(datosGuardados) : {};
+            
+            const padronGuardado = localStorage.getItem('seccional40_padron');
+            const padron = padronGuardado ? JSON.parse(padronGuardado) : [];
 
-            // Extraer fecha y hora de cada registro
-            const registrosConFecha = safeRecords.map(r => {
-                const marcaTemporal = r.marcaTemporal || r['Marca Temporal'] || r['Timestamp'] || r.timestamp || r.Fecha || '';
-                const nombre = r.nombre || r['Nombre'] || r.studentName || r.Nombre || '';
-                const cedula = (r.cedula || r['Cédula'] || r['Cedula'] || r.studentId || r.Cedula || '').toString().replace(/\./g, '').trim();
-                const carrera = r.carrera || r['Carrera'] || r.career || r.Carrera || '';
-
-                let fecha = '';
-                let hora = '';
-                const str = String(marcaTemporal).trim();
-                
-                // Intentar parsear como Date para convertir zona horaria correctamente
-                const d = new Date(str);
-                if (!isNaN(d.getTime())) {
-                    // Formatear fecha como dd/mm/yyyy
-                    const dia = String(d.getDate()).padStart(2, '0');
-                    const mes = String(d.getMonth() + 1).padStart(2, '0');
-                    const anio = d.getFullYear();
-                    fecha = dia + '/' + mes + '/' + anio;
-                    // Formatear hora local (Paraguay)
-                    const horas = String(d.getHours()).padStart(2, '0');
-                    const minutos = String(d.getMinutes()).padStart(2, '0');
-                    hora = horas + ':' + minutos;
-                } else if (str.includes(' ')) {
-                    // formato: "06/06/2026 02:35"
-                    const partes = str.split(' ');
-                    fecha = partes[0];
-                    hora = partes[1] ? partes[1].substring(0, 5) : '';
-                } else if (str.includes('/')) {
-                    // formato: "06/06/2026"
-                    fecha = str;
-                } else if (str.includes('-') && str.length <= 10) {
-                    // formato: "2026-06-06" (solo fecha)
-                    fecha = str;
-                } else {
-                    fecha = str;
+            // Convertir a array de registros de votos
+            const registrosVotos = [];
+            Object.keys(datosVotos).forEach(orden => {
+                const voto = datosVotos[orden];
+                if (voto.tipo === 'voto') {
+                    const elector = padron.find(p => p.orden === parseInt(orden));
+                    if (elector) {
+                        const timestamp = voto.timestamp || Date.now();
+                        const d = new Date(timestamp);
+                        const fecha = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth()+1).padStart(2, '0') + '/' + d.getFullYear();
+                        const hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                        
+                        registrosVotos.push({
+                            fecha,
+                            hora,
+                            timestamp,
+                            nombre: (elector.nombreCompleto || '').toUpperCase(),
+                            cedula: (elector.cedula || '').toString().replace(/\./g, ''),
+                            mesa: elector.mesa || '-',
+                            orden: elector.orden || '-'
+                        });
+                    }
                 }
+            });
 
-                return { fecha, hora, nombre: (nombre || '').toUpperCase().trim(), cedula, carrera };
-            }).filter(r => r.nombre || r.cedula);
+            // Ordenar por timestamp descendente (más reciente primero)
+            registrosVotos.sort((a, b) => b.timestamp - a.timestamp);
 
-            // Contar asistentes unicos totales
-            const cedulasUnicas = new Set(registrosConFecha.map(r => r.cedula).filter(Boolean)).size;
+            // Contar votos únicos totales
+            const cedulasUnicas = new Set(registrosVotos.map(r => r.cedula).filter(Boolean)).size;
             if (counter) counter.textContent = String(cedulasUnicas);
 
-            if (!registrosConFecha.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i><div class="empty-state-text">Aún no hay registros</div></td></tr>';
+            if (!registrosVotos.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i><div class="empty-state-text">Aún no hay votos registrados</div></td></tr>';
                 return;
             }
 
-            // Funcion para formatear fecha corta
+            // Función para formatear fecha corta
             function formatearFechaCorta(fechaStr) {
                 if (!fechaStr || fechaStr === 'Sin fecha') return 'Sin fecha';
                 try {
                     const dias = ['DOM','LUN','MAR','MIE','JUE','VIE','SAB'];
                     let d;
                     if (fechaStr.includes('/')) {
-                        // dd/mm/yyyy
                         const partes = fechaStr.split('/');
                         if (partes[2] && partes[2].length === 4) {
                             d = new Date(parseInt(partes[2]), parseInt(partes[1])-1, parseInt(partes[0]));
@@ -1624,7 +1615,6 @@
                             d = new Date(parseInt(partes[2])+2000, parseInt(partes[1])-1, parseInt(partes[0]));
                         }
                     } else if (fechaStr.includes('-') && fechaStr.length === 10) {
-                        // yyyy-mm-dd
                         const partes = fechaStr.split('-');
                         d = new Date(parseInt(partes[0]), parseInt(partes[1])-1, parseInt(partes[2]));
                     } else {
@@ -1643,16 +1633,20 @@
 
             // Agrupar por fecha
             const porFecha = {};
-            registrosConFecha.forEach(r => {
+            registrosVotos.forEach(r => {
                 const key = r.fecha || 'Sin fecha';
                 if (!porFecha[key]) porFecha[key] = [];
                 porFecha[key].push(r);
             });
 
-            // Ordenar fechas (mas reciente primero)
-            const fechasOrdenadas = Object.keys(porFecha).sort().reverse();
-
-            const showDetails = (typeof isTeacherSessionActive === 'function') ? isTeacherSessionActive() : false;
+            // Ordenar fechas (más reciente primero)
+            const fechasOrdenadas = Object.keys(porFecha).sort((a, b) => {
+                const parseFecha = (f) => {
+                    const p = f.split('/');
+                    return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+                };
+                return parseFecha(b) - parseFecha(a);
+            });
 
             let html = '';
             fechasOrdenadas.forEach(fecha => {
@@ -1660,100 +1654,34 @@
                 const unicosDia = new Set(lista.map(r => r.cedula).filter(Boolean)).size;
                 const fechaCorta = formatearFechaCorta(fecha);
 
-                // Fila de fecha (header del dia)
+                // Fila de fecha (header del día)
                 html += `<tr class="fecha-header">
                     <td colspan="4">
                         <div class="fecha-badge">
                             <i class="fas fa-calendar-day"></i>
                             <span class="fecha-texto">${fechaCorta}</span>
-                            <span class="fecha-count">${unicosDia} asistentes</span>
+                            <span class="fecha-count">${unicosDia} votos</span>
                         </div>
                     </td>
                 </tr>`;
 
-                if (showDetails) {
-                    // Filas de cada registro (hora + datos) solo en modo docente
-                    lista.forEach(r => {
-                        html += `<tr class="registro-row">
-                            <td class="hora-cell">${r.hora || '--:--'}</td>
-                            <td>${r.nombre}</td>
-                            <td>${r.cedula}</td>
-                            <td>${r.carrera}</td>
-                        </tr>`;
-                    });
-                } else {
-                    // Modo publico: solo mensaje de privacidad
-                    html += `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);font-size:11px;padding:8px;">
-                        <i class="fas fa-shield-alt" style="margin-right:4px;"></i>Datos protegidos. Inicie sesión como docente para ver detalles.
-                    </td></tr>`;
-                }
+                // Filas de cada voto (hora + datos)
+                lista.forEach(r => {
+                    html += `<tr class="registro-row">
+                        <td class="hora-cell">${r.hora || '--:--'}</td>
+                        <td>${r.nombre || 'Sin nombre'}</td>
+                        <td>${r.cedula || '-'}</td>
+                        <td>${r.mesa}</td>
+                    </tr>`;
+                });
             });
 
             tbody.innerHTML = html;
-        };
+        }
 
-        // Asegurar que refreshAttendanceData consulte la API correctamente
-        const _origRefresh = window.refreshAttendanceData;
-        window.refreshAttendanceData = async function() {
-            try {
-                const apiUrl = (typeof getAttendanceApiUrl === 'function') ? getAttendanceApiUrl() : '';
-                const apiKey = (typeof getApiKey === 'function') ? getApiKey() : '';
-                const csvUrl = (typeof getAttendanceCsvUrl === 'function') ? getAttendanceCsvUrl() : '';
-                let records = [];
-
-                // 1. Intentar API primero (Registro sheet)
-                if (apiUrl) {
-                    try {
-                        const url = apiKey ? (apiUrl + (apiUrl.includes('?') ? '&' : '?') + 'apiKey=' + encodeURIComponent(apiKey)) : apiUrl;
-                        const resp = await fetch(url, { method: 'GET' });
-                        if (resp.ok) {
-                            const payload = await resp.json();
-                            const source = Array.isArray(payload) ? payload : (Array.isArray(payload?.records) ? payload.records : (Array.isArray(payload?.registros) ? payload.registros : []));
-                            if (source && source.length) {
-                                records = source.map(function(r) {
-                                    return {
-                                        marcaTemporal: r.marcaTemporal || r.MarcaTemporal || r['Marca Temporal'] || r.Fecha || '',
-                                        nombre: r.nombre || r.Nombre || r.studentName || '',
-                                        cedula: (r.cedula || r.Cedula || r.studentId || '').toString().replace(/\./g, '').trim(),
-                                        carrera: r.carrera || r.Carrera || r.career || ''
-                                    };
-                                }).filter(function(r) { return r.nombre || r.cedula; });
-                            }
-                        }
-                    } catch(e) { console.warn('API error:', e); }
-                }
-
-                // 2. Si API vacia, intentar CSV
-                if (!records.length && csvUrl) {
-                    try {
-                        const resp = await fetch(csvUrl);
-                        if (resp.ok) {
-                            const text = await resp.text();
-                            if (typeof parseCSVToAttendance === 'function') {
-                                records = parseCSVToAttendance(text);
-                            }
-                        }
-                    } catch(e) { console.warn('CSV error:', e); }
-                }
-
-                // 3. Si aun vacia, fallback localStorage
-                if (!records.length && typeof loadAttendanceRecords === 'function') {
-                    records = loadAttendanceRecords();
-                }
-
-                renderPublicAttendancePreview(records);
-                if (typeof renderAttendance === 'function') renderAttendance();
-                return records;
-            } catch (err) {
-                console.error('refreshAttendanceData error:', err);
-                if (typeof loadAttendanceRecords === 'function') {
-                    const recs = loadAttendanceRecords();
-                    renderPublicAttendancePreview(recs);
-                    return recs;
-                }
-                return [];
-            }
-        };
+        function refreshVotosRecientes() {
+            renderVotosRecientes();
+        }
 
         // ==================== PANEL DE CONTROL ELECTORAL ====================
         function cargarPanelElectoral() {
@@ -1901,8 +1829,14 @@
         }
 
         // Cargar panel electoral al inicio y cada 5 segundos
-        setTimeout(cargarPanelElectoral, 1000);
-        setInterval(cargarPanelElectoral, 5000);
+        setTimeout(function() {
+            cargarPanelElectoral();
+            refreshVotosRecientes();
+        }, 1000);
+        setInterval(function() {
+            cargarPanelElectoral();
+            refreshVotosRecientes();
+        }, 5000);
     </script>
 </body>
 </html>
