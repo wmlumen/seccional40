@@ -78,11 +78,18 @@
             return result;
         }
 
+        // ============ LIMPIAR CÉDULA ============
+        function limpiarCedula(cedula) {
+            // Eliminar puntos, espacios, guiones y comas
+            return (cedula || '').replace(/[.\s,-]/g, '').trim();
+        }
+
         // ============ LOGIN ============
         function login() {
             const cedulaInput = document.getElementById('cedulaInput');
             const passInput = document.getElementById('passInput');
-            const cedula = cedulaInput ? cedulaInput.value.trim().replace(/\./g, '').replace(/\s/g, '') : '';
+            const cedulaRaw = cedulaInput ? cedulaInput.value.trim() : '';
+            const cedula = limpiarCedula(cedulaRaw);
             const password = passInput ? passInput.value.trim() : '';
             
             if (!cedula || !password) {
@@ -91,13 +98,18 @@
             }
             
             console.log('=== LOGIN DEBUG ===');
-            console.log('Intentando login con cedula:', cedula);
+            console.log('Cédula original ingresada:', cedulaRaw);
+            console.log('Cédula limpiada:', cedula);
             console.log('Password ingresado:', password);
             console.log('Dirigentes disponibles:', state.dirigentes.length);
             console.log('Lista de dirigentes:', state.dirigentes.map(d => ({ cedula: d.cedula, nombre: d.nombre, passLen: d.contraseña.length })));
             
-            // Buscar dirigente
-            const dirigente = state.dirigentes.find(d => d.cedula === cedula && d.contraseña === password);
+            // Buscar dirigente - comparar cédulas limpias
+            const dirigente = state.dirigentes.find(d => {
+                const cedulaLimpiaCSV = limpiarCedula(d.cedula);
+                console.log('Comparando:', cedula, 'vs', cedulaLimpiaCSV, '→', cedula === cedulaLimpiaCSV);
+                return cedulaLimpiaCSV === cedula && d.contraseña === password;
+            });
             
             if (dirigente) {
                 console.log('✅ Login exitoso:', dirigente.nombre);
@@ -106,7 +118,7 @@
                 cargarDatos();
             } else {
                 // Mostrar en qué falló
-                const porCedula = state.dirigentes.find(d => d.cedula === cedula);
+                const porCedula = state.dirigentes.find(d => limpiarCedula(d.cedula) === cedula);
                 if (porCedula) {
                     console.log('❌ Cédula encontrada pero contraseña no coincide');
                     console.log('  Cédula en CSV:', porCedula.cedula);
@@ -115,7 +127,7 @@
                     alert('Cédula encontrada pero contraseña incorrecta.\n\nVerifique mayúsculas/minúsculas y espacios.');
                 } else {
                     console.log('❌ Cédula no encontrada. Cédulas disponibles:', state.dirigentes.map(d => d.cedula));
-                    alert('Cédula no encontrada en la lista de dirigentes.\n\nVerifique que su cédula esté registrada correctamente (sin puntos ni espacios).');
+                    alert('Cédula no encontrada en la lista de dirigentes.\n\nVerifique que su cédula esté registrada correctamente.');
                 }
             }
         }
@@ -142,7 +154,7 @@
                     const partes = parseCSVLine(padronLineas[i]);
                     if (partes.length >= 8) {
                         padronData.push({
-                            cedula: partes[5].replace(/\./g, '').trim(),
+                            cedula: limpiarCedula(partes[5]),
                             nombre: (partes[6].trim() + ' ' + partes[7].trim()).trim(),
                             mesa: parseInt(partes[3].trim()) || 0,
                             orden: parseInt(partes[4].trim()) || 0
@@ -204,13 +216,15 @@
                     console.log('Linea', i, 'Partes:', partes.length, 'Contenido:', partes);
                     
                     if (partes.length >= 3) {
-                        // Limpiar comillas que quedaron alrededor
-                        const cedula = partes[0].replace(/\./g, '').trim().replace(/^"|"$/g, '');
+                        // Limpiar comillas y puntos de cédula
+                        const cedulaRaw = partes[0].trim().replace(/^"|"$/g, '');
+                        const cedula = limpiarCedula(cedulaRaw);
                         const nombre = partes[1].trim().replace(/^"|"$/g, '');
                         const contraseña = partes[2].trim().replace(/^"|"$/g, '');
                         
                         dirs.push({
                             cedula: cedula,
+                            cedulaOriginal: cedulaRaw,
                             nombre: nombre,
                             contraseña: contraseña
                         });
@@ -238,7 +252,7 @@
         function registrarComunicacion() {
             const cedulaInput = document.getElementById('cedulaComunicacion');
             const notaInput = document.getElementById('notaComunicacion');
-            const cedula = cedulaInput ? cedulaInput.value.trim().replace(/\./g, '') : '';
+            const cedula = cedulaInput ? limpiarCedula(cedulaInput.value.trim()) : '';
             const nota = notaInput ? notaInput.value.trim() : '';
             
             if (!cedula) {
@@ -269,7 +283,7 @@
             const motivoInput = document.getElementById('motivoNoVoto');
             const observacionInput = document.getElementById('observacionNoVoto');
             
-            const cedula = cedulaInput ? cedulaInput.value.trim().replace(/\./g, '') : '';
+            const cedula = cedulaInput ? limpiarCedula(cedulaInput.value.trim()) : '';
             const motivo = motivoInput ? motivoInput.value : 'Otro';
             const observacion = observacionInput ? observacionInput.value.trim() : '';
             
@@ -322,7 +336,7 @@
         function buscarElectorPadron(inputId, resultadoId) {
             const input = document.getElementById(inputId);
             const resultadoDiv = document.getElementById(resultadoId);
-            const cedula = input ? input.value.trim().replace(/\./g, '') : '';
+            const cedula = input ? limpiarCedula(input.value.trim()) : '';
             
             if (!cedula || !resultadoDiv) return;
             
@@ -345,13 +359,15 @@
 
         // ============ ANÁLISIS DE DATOS ============
         function getVotantesDelDirigente() {
-            const votosDelDirigente = state.votos.filter(v => 
-                v.dirigente === state.dirigente.cedula || 
-                v.dirigenteNombre === state.dirigente.nombre
-            );
+            const cedulaDirigenteLimpia = limpiarCedula(state.dirigente.cedula);
+            
+            const votosDelDirigente = state.votos.filter(v => {
+                const cedulaVoto = limpiarCedula(v.dirigente || '');
+                return cedulaVoto === cedulaDirigenteLimpia || v.dirigenteNombre === state.dirigente.nombre;
+            });
             
             const noVotosDelDirigente = state.noVotos.filter(nv => 
-                nv.origen && nv.origen.includes('dirigente_' + state.dirigente.cedula)
+                nv.origen && nv.origen.includes('dirigente_' + cedulaDirigenteLimpia)
             );
             
             return { votos: votosDelDirigente, noVotos: noVotosDelDirigente };
@@ -431,7 +447,7 @@
                                         <p class="font-bold mb-2">Primeros registros cargados:</p>
                                         ${state.dirigentes.slice(0, 5).map((d, i) => `
                                             <div class="mb-1 p-2 bg-white rounded border border-slate-200">
-                                                <span class="font-bold">${i+1}.</span> Cédula: "${d.cedula}" | Nombre: "${d.nombre}" | Pass: "${d.contraseña.replace(/./g, '*')}" (len:${d.contraseña.length})
+                                                <span class="font-bold">${i+1}.</span> Cédula: "${d.cedulaOriginal || d.cedula}" → Limpia: "${d.cedula}" | Nombre: "${d.nombre}" | Pass: "${d.contraseña.replace(/./g, '*')}" (len:${d.contraseña.length})
                                             </div>
                                         `).join('')}
                                         ${state.dirigentes.length > 5 ? `<p class="text-slate-400 mt-2">... y ${state.dirigentes.length - 5} más</p>` : ''}
