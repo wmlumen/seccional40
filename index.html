@@ -47,7 +47,7 @@
     
     // ==================== ESTADO ====================
     let state = {
-      autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
+      autenticado: getNivel() ? true : false,
       cargando: false,
       mensaje: '',
       padron: [],
@@ -78,6 +78,7 @@
     }
 
     function logout() {
+      sessionStorage.removeItem(NIVEL_SESSION_KEY);
       sessionStorage.removeItem(AUTH_SESSION_KEY);
       state.autenticado = false;
       state.miembroActual = null;
@@ -119,7 +120,11 @@
         return;
       }
 
-      if (password !== ACCESS_PASSWORD) {
+      if (password === PW_PC) {
+        sessionStorage.setItem(NIVEL_SESSION_KEY, 'pc');
+      } else if (password === PW_COLEGIO) {
+        sessionStorage.setItem(NIVEL_SESSION_KEY, 'colegio');
+      } else {
         alert('Contrasena incorrecta.');
         return;
       }

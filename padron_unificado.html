@@ -25,12 +25,16 @@
     <script>
         // ============ CONFIGURACIÓN ============
         const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
-        const ACCESS_PASSWORD = 'Paraguay100';
+        const PW_PC = 'Paraguay100';
         const AUTH_SESSION_KEY = 'seccional40_auth';
+        const NIVEL_SESSION_KEY = 'seccional40_nivel';
+
+        function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
+        function estaAutenticado() { return getNivel() === 'pc'; }
 
         // ============ ESTADO ============
         let state = {
-            autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
+            autenticado: estaAutenticado(),
             cargando: false,
             mensaje: '',
             electores: [],
@@ -49,13 +53,15 @@
             const passInput = document.getElementById('passwordInput');
             const pass = passInput ? passInput.value.trim() : '';
             if (!pass) { alert('Ingrese la contraseña.'); return; }
-            if (pass !== ACCESS_PASSWORD) { alert('Contraseña incorrecta.'); return; }
+            if (pass !== PW_PC) { alert('Contraseña incorrecta.'); return; }
+            sessionStorage.setItem(NIVEL_SESSION_KEY, 'pc');
             sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
             state.autenticado = true;
             cargarDatos();
         }
 
         function logout() {
+            sessionStorage.removeItem(NIVEL_SESSION_KEY);
             sessionStorage.removeItem(AUTH_SESSION_KEY);
             state.autenticado = false;
             render();

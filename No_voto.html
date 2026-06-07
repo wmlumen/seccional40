@@ -19,11 +19,19 @@
     <script>
         const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
         const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
-        const PASSWORD = 'Paraguay100';
+        const PW_COLEGIO = 'Paraguay40';
+        const PW_PC = 'Paraguay100';
         const AUTH_SESSION_KEY = 'seccional40_auth';
+        const NIVEL_SESSION_KEY = 'seccional40_nivel';
+        
+        function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
+        function estaAutenticado() {
+            const nivel = getNivel();
+            return nivel === 'colegio' || nivel === 'pc';
+        }
         
         let state = {
-            autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
+            autenticado: estaAutenticado(),
             cargando: false,
             padron: [],
             consultaResultado: null,
@@ -32,7 +40,15 @@
 
         function login() {
             const input = document.getElementById('passwordInput');
-            if (input && input.value === PASSWORD) {
+            if (!input) return;
+            const pass = input.value.trim();
+            if (pass === PW_PC) {
+                sessionStorage.setItem(NIVEL_SESSION_KEY, 'pc');
+                sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
+                state.autenticado = true;
+                cargarPadron();
+            } else if (pass === PW_COLEGIO) {
+                sessionStorage.setItem(NIVEL_SESSION_KEY, 'colegio');
                 sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
                 state.autenticado = true;
                 cargarPadron();

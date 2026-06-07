@@ -432,15 +432,19 @@
     <div id="app"></div>
 
     <script>
-        const PASSWORD = 'Paraguay100';
+        const PW_PC = 'Paraguay100';
         const AUTH_SESSION_KEY = 'seccional40_auth';
+        const NIVEL_SESSION_KEY = 'seccional40_nivel';
         const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
         const SPREADSHEET_ID = '1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I';
         const RESPUESTAS_GID = '1919603001';
         const RESPUESTAS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${RESPUESTAS_GID}`;
 
+        function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
+        function estaAutenticado() { return getNivel() === 'pc'; }
+
         const state = {
-            autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
+            autenticado: estaAutenticado(),
             cargando: false,
             respuestas: [],
             mesas: [],
@@ -514,6 +518,7 @@
         }
 
         function logout() {
+            sessionStorage.removeItem(NIVEL_SESSION_KEY);
             sessionStorage.removeItem(AUTH_SESSION_KEY);
             state.autenticado = false;
             render();
@@ -528,11 +533,12 @@
                 return;
             }
 
-            if (password !== PASSWORD) {
+            if (password !== PW_PC) {
                 alert('Contrasena incorrecta.');
                 return;
             }
 
+            sessionStorage.setItem(NIVEL_SESSION_KEY, 'pc');
             sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
             state.autenticado = true;
             loadAll();
