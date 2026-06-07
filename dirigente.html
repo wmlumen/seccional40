@@ -43,7 +43,15 @@
         };
 
         // ============ UTILIDADES CSV ============
+        function cleanBOM(text) {
+            // Eliminar BOM (Byte Order Mark) que a veces añade Google Sheets
+            return text.replace(/^\uFEFF/, '');
+        }
+
         function parseCSVLine(line) {
+            // Limpiar \r al final si existe
+            line = line.replace(/\r$/, '');
+            
             const result = [];
             let current = '';
             let inQuotes = false;
@@ -82,12 +90,17 @@
                 return;
             }
             
-            console.log('Intentando login:', cedula, 'Dirigentes disponibles:', state.dirigentes.length);
-            console.log('Lista de dirigentes:', state.dirigentes.map(d => ({ cedula: d.cedula, nombre: d.nombre })));
+            console.log('=== LOGIN DEBUG ===');
+            console.log('Intentando login con cedula:', cedula);
+            console.log('Password ingresado:', password);
+            console.log('Dirigentes disponibles:', state.dirigentes.length);
+            console.log('Lista de dirigentes:', state.dirigentes.map(d => ({ cedula: d.cedula, nombre: d.nombre, passLen: d.contraseña.length })));
             
+            // Buscar dirigente
             const dirigente = state.dirigentes.find(d => d.cedula === cedula && d.contraseña === password);
             
             if (dirigente) {
+                console.log('✅ Login exitoso:', dirigente.nombre);
                 state.dirigente = dirigente;
                 state.autenticado = true;
                 cargarDatos();
@@ -95,9 +108,14 @@
                 // Mostrar en qué falló
                 const porCedula = state.dirigentes.find(d => d.cedula === cedula);
                 if (porCedula) {
-                    alert('Cédula encontrada pero contraseña incorrecta.\nIntenta con otra contraseña.');
+                    console.log('❌ Cédula encontrada pero contraseña no coincide');
+                    console.log('  Cédula en CSV:', porCedula.cedula);
+                    console.log('  Password CSV:', porCedula.contraseña);
+                    console.log('  Password input:', password);
+                    alert('Cédula encontrada pero contraseña incorrecta.\n\nVerifique mayúsculas/minúsculas y espacios.');
                 } else {
-                    alert('Cédula no encontrada en la lista de dirigentes.\nVerifique que su cédula esté registrada correctamente.');
+                    console.log('❌ Cédula no encontrada. Cédulas disponibles:', state.dirigentes.map(d => d.cedula));
+                    alert('Cédula no encontrada en la lista de dirigentes.\n\nVerifique que su cédula esté registrada correctamente (sin puntos ni espacios).');
                 }
             }
         }
@@ -164,25 +182,39 @@
             
             try {
                 const response = await fetch(DIRIGENTES_CSV_URL);
-                const csvText = await response.text();
+                const csvText = cleanBOM(await response.text());
                 
                 console.log('=== DEBUG CSV DIRIGENTES ===');
-                console.log('CSV completo:', csvText);
+                console.log('CSV completo (primeros 500 chars):', csvText.substring(0, 500));
+                console.log('CSV completo (últimos 200 chars):', csvText.substring(csvText.length - 200));
                 
-                const lineas = csvText.split('\n').filter(l => l.trim());
+                // Manejar \r\n correctamente
+                const lineas = csvText.split(/\r?\n/).filter(l => l.trim());
                 console.log('Total lineas:', lineas.length);
+                console.log('Primera linea (header):', lineas[0]);
+                console.log('Segunda linea (primer dir):', lineas[1]);
                 
                 const dirs = [];
                 for (let i = 1; i < lineas.length; i++) {
-                    const partes = parseCSVLine(lineas[i]);
+                    const linea = lineas[i].trim();
+                    if (!linea) continue;
+                    
+                    const partes = parseCSVLine(linea);
+                    console.log('Linea', i, 'Raw:', linea);
                     console.log('Linea', i, 'Partes:', partes.length, 'Contenido:', partes);
                     
                     if (partes.length >= 3) {
+                        // Limpiar comillas que quedaron alrededor
+                        const cedula = partes[0].replace(/\./g, '').trim().replace(/^"|"$/g, '');
+                        const nombre = partes[1].trim().replace(/^"|"$/g, '');
+                        const contraseña = partes[2].trim().replace(/^"|"$/g, '');
+                        
                         dirs.push({
-                            cedula: partes[0].replace(/\./g, '').trim(),
-                            nombre: partes[1].trim(),
-                            contraseña: partes[2].trim()
+                            cedula: cedula,
+                            nombre: nombre,
+                            contraseña: contraseña
                         });
+                        console.log('Dirigente agregado:', { cedula: cedula, nombre: nombre, contraseña: '***' });
                     } else {
                         console.warn('Linea ignorada (menos de 3 columnas):', partes);
                     }
@@ -345,9 +377,11 @@
 
         // ============ RENDERIZADO ============
         function renderLogin() {
+            const mostrarDiagnostico = state.dirigentes.length === 0 || state.mensaje.includes('Error');
+            
             return `
                 <div class="min-h-screen flex items-center justify-center p-4">
-                    <div class="bg-white rounded-[2rem] p-8 md:p-12 shadow-2xl border border-slate-100 max-w-md w-full text-center">
+                    <div class="bg-white rounded-[2rem] p-8 md:p-12 shadow-2xl border border-slate-100 max-w-lg w-full text-center">
                         <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                             <i class="fas fa-user-tie text-white text-3xl"></i>
                         </div>
@@ -385,6 +419,26 @@
                                 <p class="text-xs text-yellow-700 font-bold">⏳ ${state.mensaje}</p>
                             </div>
                         `}
+                        
+                        <!-- DIAGNÓSTICO VISIBLE -->
+                        ${state.dirigentes.length > 0 ? `
+                            <div class="mt-4 text-left">
+                                <details class="bg-slate-50 rounded-xl border border-slate-200">
+                                    <summary class="px-4 py-3 text-xs font-bold text-slate-600 cursor-pointer hover:bg-slate-100 rounded-xl">
+                                        🔍 Ver diagnóstico de carga (${state.dirigentes.length} dirigentes)
+                                    </summary>
+                                    <div class="px-4 py-3 text-xs font-mono text-slate-600 overflow-x-auto">
+                                        <p class="font-bold mb-2">Primeros registros cargados:</p>
+                                        ${state.dirigentes.slice(0, 5).map((d, i) => `
+                                            <div class="mb-1 p-2 bg-white rounded border border-slate-200">
+                                                <span class="font-bold">${i+1}.</span> Cédula: "${d.cedula}" | Nombre: "${d.nombre}" | Pass: "${d.contraseña.replace(/./g, '*')}" (len:${d.contraseña.length})
+                                            </div>
+                                        `).join('')}
+                                        ${state.dirigentes.length > 5 ? `<p class="text-slate-400 mt-2">... y ${state.dirigentes.length - 5} más</p>` : ''}
+                                    </div>
+                                </details>
+                            </div>
+                        ` : ''}
                         
                         <p class="text-xs text-slate-400 mt-6">Sistema Privado - Uso Autorizado</p>
                     </div>
