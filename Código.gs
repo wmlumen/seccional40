@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Google Apps Script - Backend Seccional 40
  * Recibe datos de votaciÃ³n y los guarda en Google Sheets
  * 
@@ -45,7 +45,7 @@ function ensureMiembrosSheet(ss) {
     sheet = ss.insertSheet(SHEET_MIEMBROS_MESA);
   }
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['CÃ©dula', 'Nombre', 'ContraseÃ±a', 'Mesa', 'Horario de Inicio', 'Horario de Cierre', 'Estado']);
+    sheet.appendRow(['Cedula', 'Nombre', 'Contrasena', 'Mesa', 'Horario de Inicio', 'Horario de Cierre', 'Estado']);
     sheet.getRange(1, 1, 1, 7)
       .setFontWeight('bold')
       .setBackground('#1e3a8a')
@@ -66,7 +66,7 @@ function obtenerMiembros(sheet) {
         rowNumber: index + 2,
         cedula: normalizarCedula(row[0]),
         nombre: normalizarTexto(row[1]),
-        contraseÃ±a: normalizarTexto(row[2]),
+        contrasena: normalizarTexto(row[2]),
         mesa: normalizarTexto(row[3]),
         horarioInicio: normalizarTexto(row[4]),
         horarioCierre: normalizarTexto(row[5]),
@@ -305,7 +305,7 @@ function doGet(e) {
         .map(row => ({
           cedula: String(row[0] || '').replace(/\./g, '').trim(),
           nombre: String(row[1] || '').trim(),
-          contraseÃ±a: String(row[2] || '').trim()
+          contrasena: String(row[2] || '').trim()
         }))
         .filter(d => d.cedula && d.nombre);
       return jsonResponse({ dirigentes: dirigentes, total: dirigentes.length });
@@ -322,7 +322,7 @@ function doGet(e) {
       const password = normalizarTexto(e.parameter.password);
       const sheet = ensureMiembrosSheet(ss);
       const miembros = obtenerMiembros(sheet);
-      const miembro = miembros.find(m => m.cedula === cedula && m.contraseÃ±a === password);
+      const miembro = miembros.find(m => m.cedula === cedula && m.contrasena === password);
 
       if (!miembro) {
         return jsonResponse({ success: false, error: 'Credenciales invÃ¡lidas' });
