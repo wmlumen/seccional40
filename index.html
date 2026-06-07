@@ -35,9 +35,15 @@
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
     const DIRIGENTES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?gid=79263661&single=true&output=csv';
     const MAX_VOTOS = 350;
-    const ACCESS_PASSWORD = 'Paraguay40';
+    const PW_COLEGIO = 'Paraguay40';
+    const PW_PC = 'Paraguay100';
     const AUTH_SESSION_KEY = 'seccional40_auth';
+    const NIVEL_SESSION_KEY = 'seccional40_nivel';
     const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
+
+    // ==================== AUTH HELPERS ====================
+    function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
+    function esPc() { return getNivel() === 'pc'; }
     
     // ==================== ESTADO ====================
     let state = {
@@ -594,8 +600,8 @@
                   <p class="text-[10px] uppercase font-black text-red-200 tracking-widest">Votos</p>
                   <span class="text-2xl font-black">${stats.totalVotos}</span>
                 </div>
-                <div class="${stats.controversias > 0 ? 'bg-rose-600 text-white' : 'bg-white text-slate-900'} p-4 rounded-[1.5rem] shadow-lg border ${stats.controversias > 0 ? 'border-rose-500' : 'border-slate-100'} text-center">
-                  <p class="text-[10px] uppercase font-black ${stats.controversias > 0 ? 'text-rose-200' : 'text-slate-400'} tracking-widest">Controversias</p>
+                <div class="${stats.controversias > 0 ? 'bg-orange-600 text-white' : 'bg-white text-slate-900'} p-4 rounded-[1.5rem] shadow-lg border ${stats.controversias > 0 ? 'border-orange-500' : 'border-slate-100'} text-center">
+                  <p class="text-[10px] uppercase font-black ${stats.controversias > 0 ? 'text-orange-200' : 'text-slate-400'} tracking-widest">Controversias</p>
                   <span class="text-2xl font-black">${stats.controversias}</span>
                 </div>
               </div>
@@ -641,7 +647,7 @@
                     const tieneDirigente = elector && state.asignacionDirigentes[elector.cedula];
                     
                     if (voto?.controversia) {
-                      btnClass = "bg-rose-600 text-white font-black border-rose-700";
+                      btnClass = "bg-orange-600 text-white font-black border-orange-700";
                     } else if (voto?.tipo === 'voto') {
                       btnClass = "bg-red-500 text-white font-bold border-red-600";
                     } else if (voto?.tipo === 'ausente') {
@@ -695,7 +701,7 @@
                         let estadoLabel, estadoClass, estadoIcon;
                         if (voto?.controversia) {
                           estadoLabel = 'CONTROVERSIA';
-                          estadoClass = 'bg-rose-100 text-rose-700 border-rose-200';
+                          estadoClass = 'bg-orange-100 text-orange-700 border-orange-200';
                           estadoIcon = 'fa-exclamation-triangle';
                         } else if (voto?.tipo === 'voto') {
                           estadoLabel = 'VOTO';
@@ -746,7 +752,7 @@
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div><span>Con Dirigente</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-500 rounded"></div><span>Votó</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-slate-200 rounded"></div><span>Ausente</span></div>
-                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-rose-600 rounded"></div><span>Controversia</span></div>
+                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-orange-600 rounded"></div><span>Controversia</span></div>
                 </div>
             </div>
           `}
