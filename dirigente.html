@@ -189,49 +189,70 @@
         // ============ CARGAR DIRIGENTES ============
         async function cargarDirigentes() {
             state.cargando = true;
-            state.mensaje = 'Cargando dirigentes...';
+            state.mensaje = 'Cargando dirigentes desde servidor...';
             render();
             
             try {
-                const response = await fetch(DIRIGENTES_CSV_URL);
-                const csvText = cleanBOM(await response.text());
+                // Usar el API en lugar del CSV para leer directamente del Google Sheet
+                const response = await fetch(API_URL + '?action=dirigentes');
+                const data = await response.json();
                 
-                console.log('=== DEBUG CSV DIRIGENTES ===');
-                console.log('CSV completo (primeros 500 chars):', csvText.substring(0, 500));
-                console.log('CSV completo (últimos 200 chars):', csvText.substring(csvText.length - 200));
+                console.log('=== DEBUG DIRIGENTES DESDE API ===');
+                console.log('Respuesta:', data);
                 
-                // Manejar \r\n correctamente
-                const lineas = csvText.split(/\r?\n/).filter(l => l.trim());
-                console.log('Total lineas:', lineas.length);
-                console.log('Primera linea (header):', lineas[0]);
-                console.log('Segunda linea (primer dir):', lineas[1]);
-                
-                const dirs = [];
-                for (let i = 1; i < lineas.length; i++) {
-                    const linea = lineas[i].trim();
-                    if (!linea) continue;
+                if (data && data.dirigentes) {
+                    const dirs = data.dirigentes.map(d => ({
+                        cedula: limpiarCedula(d.cedula),
+                        cedulaOriginal: d.cedula,
+                        nombre: d.nombre,
+                        contraseña: d.contraseña
+                    }));
                     
-                    const partes = parseCSVLine(linea);
-                    console.log('Linea', i, 'Raw:', linea);
-                    console.log('Linea', i, 'Partes:', partes.length, 'Contenido:', partes);
+                    state.dirigentes = dirs;
+                    console.log('Dirigentes cargados desde API:', dirs);
+                    state.cargando = false;
+                    state.mensaje = dirs.length > 0 
+                        ? `Ingrese sus credenciales (${dirs.length} dirigentes cargados)` 
+                        : 'Error: No se cargaron dirigentes. Verifique la hoja "Dirigentes".';
+                } else {
+                    state.dirigentes = [];
+                    state.cargando = false;
+                    state.mensaje = 'Error: No se pudieron cargar los dirigentes.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Fallback: intentar con CSV si el API falla
+                console.log('⚠️ API falló, intentando CSV como fallback...');
+                try {
+                    const response = await fetch(DIRIGENTES_CSV_URL);
+                    const csvText = cleanBOM(await response.text());
+                    const lineas = csvText.split(/\r?\n/).filter(l => l.trim());
                     
-                    if (partes.length >= 3) {
-                        // Limpiar comillas y puntos de cédula
-                        const cedulaRaw = partes[0].trim().replace(/^"|"$/g, '');
-                        const cedula = limpiarCedula(cedulaRaw);
-                        const nombre = partes[1].trim().replace(/^"|"$/g, '');
-                        const contraseña = partes[2].trim().replace(/^"|"$/g, '');
-                        
-                        dirs.push({
-                            cedula: cedula,
-                            cedulaOriginal: cedulaRaw,
-                            nombre: nombre,
-                            contraseña: contraseña
-                        });
-                        console.log('Dirigente agregado:', { cedula: cedula, nombre: nombre, contraseña: '***' });
-                    } else {
-                        console.warn('Linea ignorada (menos de 3 columnas):', partes);
+                    const dirs = [];
+                    for (let i = 1; i < lineas.length; i++) {
+                        const linea = lineas[i].trim();
+                        if (!linea) continue;
+                        const partes = parseCSVLine(linea);
+                        if (partes.length >= 3) {
+                            dirs.push({
+                                cedula: limpiarCedula(partes[0]),
+                                cedulaOriginal: partes[0],
+                                nombre: partes[1].trim().replace(/^"|"$/g, ''),
+                                contraseña: partes[2].trim().replace(/^"|"$/g, '')
+                            });
+                        }
                     }
+                    state.dirigentes = dirs;
+                    state.cargando = false;
+                    state.mensaje = `Ingrese sus credenciales (${dirs.length} dirigentes cargados desde CSV)`;
+                } catch (csvError) {
+                    console.error('CSV también falló:', csvError);
+                    state.cargando = false;
+                    state.mensaje = 'Error cargando dirigentes: ' + error.message;
+                }
+            }
+            render();
+        }
                 }
                 
                 state.dirigentes = dirs;
@@ -489,6 +510,20 @@
                                 <p class="text-[10px] text-red-200 font-bold uppercase tracking-widest opacity-80">Panel del Dirigente - SECC. 40</p>
                             </div>
                         </div>
+                        
+                        <!-- MENÚ DE NAVEGACIÓN -->
+                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+                          <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
+                          <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
+                          <a href="dirigente.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Dirigente</a>
+                          <a href="mesas.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Mesas</a>
+                          <a href="No_voto.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">No Voto</a>
+                          <span class="text-[10px] text-red-400 mx-1">|</span>
+                          <span class="text-[10px] text-red-300 font-bold uppercase">PC:</span>
+                          <a href="anomalias.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Anomalías</a>
+                          <a href="asistencia.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Seguimiento</a>
+                        </div>
+                        
                         <div class="flex items-center gap-4 text-xs">
                             <div class="text-right">
                                 <p class="text-red-200">Última actualización</p>

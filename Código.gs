@@ -201,6 +201,22 @@ function doGet(e) {
       return jsonResponse({ registros: registros, total: registros.length });
     }
     
+    if (action === 'dirigentes') {
+      const sheet = ss.getSheetByName('Dirigentes');
+      if (!sheet || sheet.getLastRow() < 2) {
+        return jsonResponse({ dirigentes: [], total: 0 });
+      }
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 3).getValues();
+      const dirigentes = allData
+        .map(row => ({
+          cedula: String(row[0] || '').replace(/\./g, '').trim(),
+          nombre: String(row[1] || '').trim(),
+          contraseña: String(row[2] || '').trim()
+        }))
+        .filter(d => d.cedula && d.nombre);
+      return jsonResponse({ dirigentes: dirigentes, total: dirigentes.length });
+    }
+    
     return jsonResponse({ success: false, error: 'Unknown action' });
     
   } catch (err) {
