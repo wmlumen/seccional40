@@ -392,6 +392,28 @@ function doGet(e) {
       return jsonResponse({ dirigentes: dirigentes, total: dirigentes.length });
     }
 
+    if (action === 'asignacion_dirigentes') {
+      // Endpoint lightweight: solo devuelve cédula -> dirigente asignado desde columna J del Padron
+      var pSheet = ss.getSheetByName(SHEET_PADRON);
+      if (!pSheet) pSheet = ss.getSheetByName('Padron');
+      var asignaciones = {};
+      if (pSheet && pSheet.getLastRow() >= 2) {
+        var pData = pSheet.getRange(2, 1, pSheet.getLastRow() - 1, 11).getValues();
+        for (var i = 0; i < pData.length; i++) {
+          var row = pData[i];
+          var ced = String(row[5] || '').replace(/[.\s,-]/g, '').trim();
+          var dirAsignado = String(row[9] || '').trim(); // Columna J = DIRIGENTE
+          if (ced && dirAsignado) {
+            asignaciones[ced] = dirAsignado;
+          }
+        }
+      }
+      return jsonResponse({
+        asignaciones: asignaciones,
+        total: Object.keys(asignaciones).length
+      });
+    }
+
     if (action === 'padron_unificado') {
       // ============================================================
       // Endpoint: padron_unificado
