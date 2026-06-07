@@ -634,7 +634,7 @@
 
                     <!-- TABS -->
                     <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 overflow-hidden mb-6">
-                        <div class="flex border-b border-red-100 overflow-x-auto">
+                        <div class="flex flex-wrap border-b border-red-100">
                             <button onclick="state.tabActiva='todos'; render();" 
                                 class="flex-1 px-4 py-3 text-sm font-bold ${state.tabActiva === 'todos' ? 'text-red-600 border-b-2 border-red-600 bg-red-50' : 'text-slate-500 hover:text-red-600'} transition-all whitespace-nowrap">
                                 <i class="fas fa-list mr-1"></i>Todos (${total})
