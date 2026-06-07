@@ -48,6 +48,12 @@
     // ==================== AUTH HELPERS ====================
     function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
     function esPc() { return getNivel() === 'pc'; }
+    function getGridColumns() {
+      const w = window.innerWidth;
+      if (w < 480) return 10;
+      if (w < 768) return 20;
+      return 30;
+    }
     
     // ==================== ESTADO ====================
     let state = {
@@ -513,6 +519,13 @@
       `;
     }
 
+    // ==================== RESIZE LISTENER ====================
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { if (state.autenticado && !state.vistaLista) render(); }, 250);
+    });
+
     // ==================== RENDER MAIN ====================
     function render() {
       const app = document.getElementById('app');
@@ -631,7 +644,7 @@
                     </button>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="text-[10px] text-slate-400 font-bold">${cantidadBotones} electores · 30 columnas</span>
+                    <span class="text-[10px] text-slate-400 font-bold">${cantidadBotones} electores · ${getGridColumns()} columnas</span>
                   </div>
                 </div>
               </div>
@@ -639,7 +652,7 @@
               ${!state.vistaLista ? `
               <!-- GRID DE BOTONES -->
               <div class="bg-white p-4 rounded-[2rem] shadow-2xl border border-slate-100">
-                <div class="grid-mesa" style="grid-template-columns: repeat(${Math.min(state.gridColumns, cantidadBotones || 1)}, 1fr)">
+                <div class="grid-mesa" style="grid-template-columns: repeat(${Math.min(getGridColumns(), cantidadBotones || 1)}, 1fr)">
                   ${Array.from({ length: cantidadBotones }, (_, i) => {
                     const orden = i + 1;
                     const voto = state.votos[getVotoKey(state.mesaSeleccionada, orden)];
