@@ -1,44 +1,83 @@
 # SECCIONAL 40 - Sistema de Control Electoral
 
-Sistema web para control de votación electoral - Seccional 40.
+Sistema web completo para control de votación electoral - Seccional 40.
 
-## 🔗 Enlaces del Proyecto
+## 🏛️ Estructura del Proyecto
 
-| Enlace | Descripción |
-|--------|-------------|
-| 🗳️ **Sistema de Votación** | [https://wmlumen.github.io/seccional40/index.html](https://wmlumen.github.io/seccional40/index.html) |
-| 📊 **Panel de Reporte** | [https://wmlumen.github.io/seccional40/asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) |
-| 🚫 **No Votos** | [https://wmlumen.github.io/seccional40/No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) |
-| 🚨 **Monitoreo de Anomalías** | [https://wmlumen.github.io/seccional40/anomalias.html](https://wmlumen.github.io/seccional40/anomalias.html) |
-| 👤 **Panel del Dirigente** | [https://wmlumen.github.io/seccional40/dirigente.html](https://wmlumen.github.io/seccional40/dirigente.html) |
+### Colegio Electoral (Operativos)
+
+| Enlace | Descripción | Acceso |
+|--------|-------------|--------|
+| 🗳️ **Votación** | [index.html](https://wmlumen.github.io/seccional40/index.html) | Sistema principal de votación con 350 botones por mesa |
+| 👤 **Dirigente** | [dirigente.html](https://wmlumen.github.io/seccional40/dirigente.html) | Panel privado de cada dirigente (cédula + contraseña) |
+| 🏛️ **Mesas** | [mesas.html](https://wmlumen.github.io/seccional40/mesas.html) | Vista general de todas las mesas con estadísticas |
+| 🚫 **No Voto** | [No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) | Registro de personas que no votarán |
+
+### Panel de Control (PC - Monitoreo)
+
+| Enlace | Descripción | Acceso |
+|--------|-------------|--------|
+| 📊 **Seguimiento del Dirigente** | [asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) | Reporte por dirigente y mesa en tiempo real |
+| 🚨 **Anomalías** | [anomalias.html](https://wmlumen.github.io/seccional40/anomalias.html) | Detección de intervalos voto-a-voto anómalos |
 
 ## 📝 Acceso
 
-- **Contraseña:** `Paraguay40`
-- **Seleccionar Dirigente:** Dropdown con cédula y nombre
+- **Contraseña General:** `Paraguay40`
+- **Dirigentes:** Cédula + Contraseña (según hoja "Dirigentes")
+- **Panel del Dirigente:** Lee directamente desde la hoja "Dirigentes" del Google Sheet
 
-## 📊 Funcionalidades
+## 🔗 Navegación entre Páginas
 
+Todos los archivos incluyen un **menú de navegación** en el header que permite moverse entre:
+- **Colegio:** Votación → Dirigente → Mesas → No Voto
+- **PC:** Anomalías → Seguimiento
+
+## 📊 Funcionalidades por Módulo
+
+### 🗳️ index.html (Votación)
 - Carga automática del padrón electoral desde Google Sheets
 - Consulta por cédula con nombre del elector
-- Panel de votación con 350 botones por mesa
+- Panel de votación con botones dinámicos por mesa
 - Registro de votos, ausentes y controversias
-- **Registro de personas que NO votarán** (No_voto.html)
-- Panel de reporte por Mesa y por Dirigente
-- Reporte de No Votos en tiempo real
-- **Monitoreo de anomalías** (anomalias.html): Detecta intervalos voto-a-voto anómalos por mesa
-  - Calcula tiempo promedio entre votos (a partir de 10 votos)
-  - Alerta por votos muy rápidos (< 35% de la media) o muy lentos (> 300% de la media)
-  - Alarma cuando hay 3+ votos rápidos consecutivos
-  - Actualización en tiempo real cada 5 segundos
-- **Panel del Dirigente** (dirigente.html): Cada dirigente tiene acceso privado con su cédula y contraseña
-  - Ve solo los votantes que él registró (comprometidos)
-  - Separados por estado: Ya Votaron, Ausentes, No Votarán, Controversias
-  - Puede registrar comunicaciones con notas (qué dijo el votante)
-  - Puede registrar No Votos directamente desde su panel
-  - Actualiza cada 10 segundos
 - Código QR para transferencia de posta
-- Registro automático a Google Sheets
+- Envía datos a Google Sheets en tiempo real
+
+### 👤 dirigente.html (Panel del Dirigente)
+- **Acceso privado** con cédula y contraseña de la hoja "Dirigentes"
+- Lee directamente desde el Google Sheet (no CSV)
+- Ve solo los votantes que él registró
+- Tabs: Ya Votaron, Ausentes, No Votarán, Controversias, Comunicaciones
+- Registra comunicaciones con notas
+- Registra No Votos directamente
+- Actualiza cada 10 segundos
+
+### 🏛️ mesas.html (Mesas)
+- Vista general de todas las mesas
+- Total de electores por mesa
+- Votos registrados y participación
+- Gráfico de barras por mesa
+- Actualiza cada 30 segundos
+
+### 🚫 No_voto.html (No Voto)
+- Registro de personas que no votarán
+- Búsqueda por cédula con autocompletado
+- Motivos: Enfermedad, Viaje, Fallecido, Trabajo, Desinterés, Otro
+- Observación opcional
+- Envía a hoja "No_votos" en Google Sheets
+
+### 📊 asistencia.html (Seguimiento del Dirigente - PC)
+- Reporte por Mesa y por Dirigente
+- Progreso por mesa con barras
+- Reporte de No Votos en tiempo real
+- Actualiza cada 5 segundos
+
+### 🚨 anomalias.html (Anomalías - PC)
+- Detección de intervalos voto-a-voto anómalos
+- Media calculada a partir de 10 votos por mesa
+- Alerta por votos muy rápidos (< 35%) o muy lentos (> 300%)
+- Alarma cuando hay 3+ votos rápidos consecutivos
+- Detección de No Votos que luego votaron (anomalía crítica)
+- Actualiza cada 5 segundos
 
 ## ⚙️ Configuración
 
@@ -54,36 +93,76 @@ Sistema web para control de votación electoral - Seccional 40.
 
 ### 2. **Configurar URL del API**
 
-**URL del Web App configurada en todos los archivos:**
+**URL configurada en todos los archivos:**
 ```javascript
 const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
 ```
 
-## 💾 ¿Dónde se guardan los votos?
+## 💾 Estructura de Google Sheets
 
-Los votos se guardan directamente en **Google Sheets** en tiempo real:
-
-### 1. **Google Sheets** (Base de datos principal)
 **URL:** [https://docs.google.com/spreadsheets/d/1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I/edit](https://docs.google.com/spreadsheets/d/1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I/edit)
 
-- Hoja **"Registros"**: Todos los votos marcados
-  - Columnas: `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen`
-- Hoja **"Resumen"**: Estadísticas por mesa
-- Hoja **"dirigentes"**: Lista de dirigentes (cédula, nombre, contraseña)
-  - Usada para el panel privado `dirigente.html`
-- Hoja **"No_votos"**: Personas que registraron que no votarán
-  - Columnas: `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `motivo`, `observacion`, `origen`
+### Hojas del Sistema
 
-### 2. **Panel de Reporte en tiempo real**
-- El panel `asistencia.html` lee los datos directamente desde Google Sheets cada 5 segundos
-- No se usa localStorage (todos los datos van directo a la nube)
+| Hoja | Propósito | Columnas |
+|------|-----------|----------|
+| **Registros** | Todos los votos marcados | `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen` |
+| **Resumen** | Estadísticas por mesa | `Mesa`, `Votos`, `Ausentes`, `Controversias`, `Total`, `Participacion %` |
+| **Dirigentes** | Lista de dirigentes con contraseña | `Cédula`, `Nombre`, `Contraseña` |
+| **No_votos** | Personas que no votarán | `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `motivo`, `observacion`, `origen` |
+
+### Endpoints del API
+
+| Endpoint | Descripción |
+|----------|-------------|
+| `?action=votos` | Obtener todos los votos |
+| `?action=no_votos` | Obtener todos los no-votos |
+| `?action=dirigentes` | Obtener lista de dirigentes desde la hoja |
+| `?action=resumen` | Obtener resumen por mesa |
+| `?action=mesa&mesa=N` | Obtener votos de una mesa específica |
+| `POST` | Registrar voto o no-voto |
 
 ## 🚀 Tecnologías
 
 - HTML5 / JavaScript / CSS3
 - Tailwind CSS (CDN)
+- Font Awesome (CDN)
 - Google Apps Script (backend)
 - Google Sheets (base de datos)
+
+## 🔄 Flujo de Datos
+
+```
+┌─────────────────────────────────────────┐
+│         Google Sheets (Excel)           │
+│  ┌──────────┐ ┌──────────┐ ┌────────┐ │
+│  │ Registros│ │Dirigentes│ │No_votos│ │
+│  └──────────┘ └──────────┘ └────────┘ │
+└─────────────────────────────────────────┘
+                    │
+                    │ API (Google Apps Script)
+                    │
+    ┌───────────────┼───────────────┐
+    │               │               │
+┌───▼───┐     ┌────▼────┐    ┌────▼───┐
+│ index │     │dirigente│    │No_voto │
+│ .html │     │ .html   │    │ .html  │
+└───┬───┘     └────┬────┘    └───┬────┘
+    │              │             │
+    │              │             │
+    └──────────────┼─────────────┘
+                   │
+         ┌─────────▼──────────┐
+         │     PC (PC)        │
+         │ ┌──────┐ ┌────────┐│
+         │ │mesas │ │anomalia││
+         │ │.html │ │s.html  ││
+         │ └──────┘ └────────┘│
+         │ ┌──────────────┐   │
+         │ │asistencia.html│  │
+         │ └──────────────┘   │
+         └────────────────────┘
+```
 
 ---
 
