@@ -8,6 +8,7 @@ Sistema web para control de votación electoral - Seccional 40.
 |--------|-------------|
 | 🗳️ **Sistema de Votación** | [https://wmlumen.github.io/seccional40/index.html](https://wmlumen.github.io/seccional40/index.html) |
 | 📊 **Panel de Reporte** | [https://wmlumen.github.io/seccional40/asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) |
+| 🚫 **No Votos** | [https://wmlumen.github.io/seccional40/No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) |
 
 ## 📝 Acceso
 
@@ -20,7 +21,9 @@ Sistema web para control de votación electoral - Seccional 40.
 - Consulta por cédula con nombre del elector
 - Panel de votación con 350 botones por mesa
 - Registro de votos, ausentes y controversias
+- **Registro de personas que NO votarán** (No_voto.html)
 - Panel de reporte por Mesa y por Dirigente
+- Reporte de No Votos en tiempo real
 - Código QR para transferencia de posta
 - Registro automático a Google Sheets
 
@@ -38,7 +41,7 @@ Sistema web para control de votación electoral - Seccional 40.
 
 ### 2. **Configurar URL del API**
 
-Pegar la URL en **dos archivos**:
+Pegar la URL en **tres archivos**:
 
 **`index.html`:**
 ```javascript
@@ -46,6 +49,11 @@ const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
 ```
 
 **`asistencia.html`:**
+```javascript
+const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
+```
+
+**`No_voto.html`:**
 ```javascript
 const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
 ```
@@ -61,6 +69,8 @@ Los votos se guardan directamente en **Google Sheets** en tiempo real:
   - Columnas: `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen`
 - Hoja **"Resumen"**: Estadísticas por mesa
 - Hoja **"dirigentes"**: Lista de dirigentes (cédula, nombre)
+- Hoja **"No_votos"**: Personas que registraron que no votarán
+  - Columnas: `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `motivo`, `observacion`, `origen`
 
 ### 2. **Panel de Reporte en tiempo real**
 - El panel `asistencia.html` lee los datos directamente desde Google Sheets cada 5 segundos

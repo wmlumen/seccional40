@@ -14,6 +14,7 @@
 
 const SHEET_NAME = 'Registros';
 const SHEET_RESUMEN = 'Resumen';
+const SHEET_NO_VOTOS = 'No_votos';
 
 /**
  * Maneja solicitudes POST (registrar voto/consulta)
@@ -26,40 +27,73 @@ function doPost(e) {
 
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = ss.getSheetByName(SHEET_NAME);
+    
+    // Determinar si es un registro de NO VOTO
+    const esNoVoto = data.estado === 'no_voto';
+    const nombreHoja = esNoVoto ? SHEET_NO_VOTOS : SHEET_NAME;
+    
+    let sheet = ss.getSheetByName(nombreHoja);
     
     // Crear hoja si no existe
     if (!sheet) {
-      sheet = ss.insertSheet(SHEET_NAME);
-      sheet.appendRow([
-        'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'dirigenteNombre', 'origen'
-      ]);
-      sheet.getRange(1, 1, 1, 10)
-        .setFontWeight('bold')
-        .setBackground('#1e3a8a')
-        .setFontColor('#ffffff');
+      sheet = ss.insertSheet(nombreHoja);
+      if (esNoVoto) {
+        sheet.appendRow([
+          'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'motivo', 'observacion', 'origen'
+        ]);
+        sheet.getRange(1, 1, 1, 10)
+          .setFontWeight('bold')
+          .setBackground('#dc2626')
+          .setFontColor('#ffffff');
+      } else {
+        sheet.appendRow([
+          'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'dirigenteNombre', 'origen'
+        ]);
+        sheet.getRange(1, 1, 1, 10)
+          .setFontWeight('bold')
+          .setBackground('#1e3a8a')
+          .setFontColor('#ffffff');
+      }
       sheet.setFrozenRows(1);
     }
     
-    const row = [
-      data.timestamp || new Date().toISOString(),
-      data.cedula || '',
-      data.nombre || '',
-      data.mesa || '',
-      data.orden || '',
-      data.estado || '',  // voto, ausente, controversia, consulta
-      data.accion || '',  // marcar, consultar
-      data.dirigente || 'Dirigente',
-      data.dirigenteNombre || 'Dirigente',
-      data.origen || 'web'
-    ];
+    let row;
+    if (esNoVoto) {
+      row = [
+        data.timestamp || new Date().toISOString(),
+        data.cedula || '',
+        data.nombre || '',
+        data.mesa || '',
+        data.orden || '',
+        data.estado || '',
+        data.accion || '',
+        data.motivo || '',
+        data.observacion || '',
+        data.origen || 'web'
+      ];
+    } else {
+      row = [
+        data.timestamp || new Date().toISOString(),
+        data.cedula || '',
+        data.nombre || '',
+        data.mesa || '',
+        data.orden || '',
+        data.estado || '',
+        data.accion || '',
+        data.dirigente || 'Dirigente',
+        data.dirigenteNombre || 'Dirigente',
+        data.origen || 'web'
+      ];
+    }
     
     sheet.appendRow(row);
     
-    // Actualizar resumen automático
-    actualizarResumen(ss);
+    // Actualizar resumen solo si no es no_voto
+    if (!esNoVoto) {
+      actualizarResumen(ss);
+    }
     
-    return jsonResponse({ success: true, row: sheet.getLastRow() });
+    return jsonResponse({ success: true, row: sheet.getLastRow(), tipo: esNoVoto ? 'no_voto' : 'registro' });
     
   } catch (err) {
     return jsonResponse({ success: false, error: err.message || 'Internal error' });
@@ -141,6 +175,29 @@ function doGet(e) {
           dirigenteNombre: row[8]
         }))
         .reverse(); // Más recientes primero
+      return jsonResponse({ registros: registros, total: registros.length });
+    }
+    
+    if (action === 'no_votos') {
+      const sheet = ss.getSheetByName(SHEET_NO_VOTOS);
+      if (!sheet || sheet.getLastRow() < 2) {
+        return jsonResponse({ registros: [], total: 0 });
+      }
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
+      const registros = allData
+        .map(row => ({
+          timestamp: row[0],
+          cedula: row[1],
+          nombre: row[2],
+          mesa: row[3],
+          orden: row[4],
+          estado: row[5],
+          accion: row[6],
+          motivo: row[7],
+          observacion: row[8],
+          origen: row[9]
+        }))
+        .reverse();
       return jsonResponse({ registros: registros, total: registros.length });
     }
     

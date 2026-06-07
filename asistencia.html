@@ -1523,6 +1523,35 @@
                         </div>
                     </div>
 
+                    <!-- Reporte No Votos -->
+                    <div style="background: white; border-radius: 16px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; margin-top: 20px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #450a0a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;">
+                            <i class="fas fa-user-slash" style="margin-right: 4px; color: #dc2626;"></i>Reporte No Votos
+                            <span style="font-size: 11px; color: #dc2626; margin-left: 8px;" id="no-votos-count">(0 registros)</span>
+                        </div>
+                        <div style="overflow-x: auto; max-height: 300px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                <thead>
+                                    <tr style="background: #fef2f2;">
+                                    <th style="padding: 8px; text-align: left; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Nombre</th>
+                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Cédula</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Mesa</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Motivo</th>
+                                        <th style="padding: 8px; text-align: left; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Observación</th>
+                                        <th style="padding: 8px; text-align: center; font-weight: 700; color: #7f1d1d; border-bottom: 2px solid #fecaca;">Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-no-votos">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 20px; color: #fca5a5;">
+                                            <i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Cargando datos...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- Leyenda -->
                     <div style="margin-top: 20px; padding-top: 16px; border-top: 2px solid #fef2f2; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;">
                         <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #7f1d1d; font-weight: 600;">
@@ -2031,14 +2060,57 @@
             }
         }
 
+        async function cargarNoVotos() {
+            if (!API_URL || API_URL.includes('AKfycb')) {
+                return;
+            }
+            try {
+                const resp = await fetch(API_URL + '?action=no_votos');
+                const data = await resp.json();
+                if (data && data.registros) {
+                    const tbody = document.getElementById('tabla-no-votos');
+                    const countSpan = document.getElementById('no-votos-count');
+                    
+                    countSpan.textContent = `(${data.registros.length} registros)`;
+                    
+                    if (data.registros.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #fca5a5;">Sin registros de no votos</td></tr>`;
+                        return;
+                    }
+                    
+                    let html = '';
+                    data.registros.forEach(r => {
+                        const hora = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('es-PY', {hour: '2-digit', minute: '2-digit'}) : '-';
+                        html += `
+                            <tr style="border-bottom: 1px solid #fef2f2; transition: all 0.2s;">
+                                <td style="padding: 10px 8px; font-weight: 700; color: #450a0a;">${r.nombre || '-'}</td>
+                                <td style="padding: 10px 8px; font-weight: 600; color: #7f1d1d;">${r.cedula || '-'}</td>
+                                <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: #dc2626;">${r.mesa || '-'}</td>
+                                <td style="padding: 10px 8px; text-align: center;">
+                                    <span style="background: #fef2f2; color: #dc2626; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">${r.motivo || 'Otro'}</span>
+                                </td>
+                                <td style="padding: 10px 8px; font-size: 11px; color: #4a5568;">${r.observacion || '-'}</td>
+                                <td style="padding: 10px 8px; text-align: center; font-size: 11px; color: #7f1d1d;">${hora}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
+            } catch (e) {
+                console.error('Error cargando no votos:', e);
+            }
+        }
+
         // Cargar panel electoral al inicio y cada 5 segundos
         setTimeout(function() {
             cargarPanelElectoral();
             refreshVotosRecientes();
+            cargarNoVotos();
         }, 1000);
         setInterval(function() {
             cargarPanelElectoral();
             refreshVotosRecientes();
+            cargarNoVotos();
         }, 5000);
     </script>
 </body>
