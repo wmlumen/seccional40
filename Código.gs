@@ -28,23 +28,51 @@ const SHEET_MIEMBROS_MESA = 'Miembros_mesa';
 
 /**
  * Maneja solicitudes POST (registrar voto/consulta/no_voto)
+ * AGREGAR LOGS PARA DEPURACION
  */
 function doPost(e) {
   try {
-    if (!e || !e.postData) {
-      return jsonResponse({ success: false, error: 'No data received' });
+    Logger.log('=== doPost INICIADO ===');
+    Logger.log('e: ' + JSON.stringify(e));
+    
+    if (!e) {
+      Logger.log('ERROR: No hay objeto e');
+      return jsonResponse({ success: false, error: 'No event object' });
     }
-
-    const data = JSON.parse(e.postData.contents);
+    
+    Logger.log('e.postData: ' + JSON.stringify(e.postData));
+    
+    if (!e.postData) {
+      Logger.log('ERROR: No hay postData');
+      return jsonResponse({ success: false, error: 'No postData received' });
+    }
+    
+    Logger.log('e.postData.contents: ' + e.postData.contents);
+    Logger.log('e.postData.type: ' + e.postData.type);
+    Logger.log('e.postData.length: ' + e.postData.length);
+    
+    let data;
+    try {
+      data = JSON.parse(e.postData.contents);
+      Logger.log('Data parseada: ' + JSON.stringify(data));
+    } catch (jsonError) {
+      Logger.log('ERROR parseando JSON: ' + jsonError.message);
+      Logger.log('Contenido raw: ' + e.postData.contents);
+      return jsonResponse({ success: false, error: 'Invalid JSON: ' + jsonError.message });
+    }
+    
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    Logger.log('Spreadsheet: ' + ss.getName());
     
     // Determinar si es un registro de NO VOTO
     const esNoVoto = data.estado === 'no_voto';
+    Logger.log('Es no_voto: ' + esNoVoto);
     
     if (esNoVoto) {
       // Escribir en la hoja No_voto (columnas: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO)
       let sheet = ss.getSheetByName(SHEET_NO_VOTO);
       if (!sheet) {
+        Logger.log('ERROR: Hoja No_voto no encontrada');
         return jsonResponse({ success: false, error: 'Hoja No_voto no encontrada' });
       }
       
@@ -56,13 +84,16 @@ function doPost(e) {
         data.motivo || 'Otro'
       ];
       
+      Logger.log('Escribiendo en No_voto: ' + JSON.stringify(row));
       sheet.appendRow(row);
+      Logger.log('Escrito en fila: ' + sheet.getLastRow());
       
       return jsonResponse({ success: true, row: sheet.getLastRow(), tipo: 'no_voto' });
     } else {
       // Escribir en la hoja Registros (timestamp, cedula, nombre, mesa, orden, estado, accion, dirigente, dirigenteNombre, origen)
       let sheet = ss.getSheetByName(SHEET_REGISTROS);
       if (!sheet) {
+        Logger.log('Creando hoja Registros...');
         sheet = ss.insertSheet(SHEET_REGISTROS);
         sheet.appendRow([
           'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'dirigenteNombre', 'origen'
@@ -87,13 +118,18 @@ function doPost(e) {
         data.origen || 'web'
       ];
       
+      Logger.log('Escribiendo en Registros: ' + JSON.stringify(row));
       sheet.appendRow(row);
+      Logger.log('Escrito en fila: ' + sheet.getLastRow());
+      
       actualizarResumen(ss);
       
       return jsonResponse({ success: true, row: sheet.getLastRow(), tipo: 'registro' });
     }
     
   } catch (err) {
+    Logger.log('ERROR GENERAL: ' + err.message);
+    Logger.log('Stack: ' + err.stack);
     return jsonResponse({ success: false, error: err.message || 'Internal error' });
   }
 }
@@ -111,6 +147,21 @@ function doGet(e) {
         status: 'ok',
         service: 'Seccional 40 API',
         timestamp: new Date().toISOString()
+      });
+    }
+    
+    if (action === 'test') {
+      // Endpoint de prueba para verificar que el POST funciona
+      return jsonResponse({
+        success: true,
+        message: 'API funcionando correctamente',
+        timestamp: new Date().toISOString(),
+        sheets: {
+          registros: ss.getSheetByName(SHEET_REGISTROS) ? 'Existe' : 'No existe',
+          no_voto: ss.getSheetByName(SHEET_NO_VOTO) ? 'Existe' : 'No existe',
+          dirigentes: ss.getSheetByName(SHEET_DIRIGENTES) ? 'Existe' : 'No existe',
+          resumen: ss.getSheetByName(SHEET_RESUMEN) ? 'Existe' : 'No existe'
+        }
       });
     }
     
