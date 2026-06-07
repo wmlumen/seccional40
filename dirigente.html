@@ -484,18 +484,23 @@
         }
 
         function render() {
-            const app = document.getElementById('app');
-            
-            if (!state.autenticado) {
-                if (state.dirigentes.length === 0 && !state.cargando) {
-                    cargarDirigentes();
+            try {
+                const app = document.getElementById('app');
+                if (!app) {
+                    console.error('Elemento #app no encontrado');
                     return;
                 }
-                app.innerHTML = renderLogin();
-                return;
-            }
-            
-            const stats = getEstadisticas();
+                
+                if (!state.autenticado) {
+                    if (state.dirigentes.length === 0 && !state.cargando) {
+                        cargarDirigentes();
+                        return;
+                    }
+                    app.innerHTML = renderLogin();
+                    return;
+                }
+                
+                const stats = getEstadisticas();
             const total = stats.yaVotaron.length + stats.ausentes.length + stats.controversias.length + stats.noVotos.length;
             
             app.innerHTML = `
@@ -673,6 +678,15 @@
             return renderTablaVotos(todos, 'slate');
         }
 
+            } catch (e) {
+                console.error('Error en render:', e);
+                const app = document.getElementById('app');
+                if (app) {
+                    app.innerHTML = '<div style="padding:20px; color:red; text-align:center;">Error al renderizar la página. Recargue.</div>';
+                }
+            }
+        }
+
         function renderTablaVotos(votos, color) {
             if (votos.length === 0) {
                 return renderEmptyState('No hay registros en esta categoría');
@@ -801,7 +815,26 @@
             }
         }, 10000);
 
-        render();
+        // Asegurar que el DOM esté listo antes de renderizar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('DOM cargado, iniciando render...');
+                try {
+                    render();
+                } catch (e) {
+                    console.error('Error en render inicial:', e);
+                    document.getElementById('app').innerHTML = '<div style="padding:20px; color:red;">Error al cargar la página. Recargue.</div>';
+                }
+            });
+        } else {
+            console.log('DOM ya listo, iniciando render...');
+            try {
+                render();
+            } catch (e) {
+                console.error('Error en render inicial:', e);
+                document.getElementById('app').innerHTML = '<div style="padding:20px; color:red;">Error al cargar la página. Recargue.</div>';
+            }
+        }
     </script>
 </body>
 </html>
