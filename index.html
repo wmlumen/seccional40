@@ -152,6 +152,7 @@
             const cedula = partes[5].replace(/\./g, '').trim();
             const mesa = parseInt(partes[3].trim()) || 0;
             const orden = parseInt(partes[4].trim()) || 0;
+            const dirigente = (partes[9] || '').replace(/^"|"$/g, '').trim(); // Columna J
             
             registros.push({
               secc: partes[0].trim(),
@@ -162,7 +163,8 @@
               cedula: cedula,
               apellido: partes[6].trim(),
               nombre: partes[7].trim(),
-              nombreCompleto: (partes[6].trim() + ' ' + partes[7].trim()).trim()
+              nombreCompleto: (partes[6].trim() + ' ' + partes[7].trim()).trim(),
+              dirigente: dirigente // Columna J del CSV
             });
           }
         }
@@ -185,8 +187,8 @@
         // Cargar votos desde la API
         await cargarVotos();
         
-        // Cargar asignacion de dirigentes (columna J del Padron)
-        await cargarAsignacionDirigentes();
+        // Cargar asignacion de dirigentes (columna J del CSV)
+        cargarAsignacionDirigentes();
       } catch (error) {
         console.error('Error cargando padron:', error);
         state.cargando = false;
@@ -278,18 +280,17 @@
       render();
     }
 
-    // ==================== CARGAR ASIGNACION DIRIGENTES DESDE API ====================
-    async function cargarAsignacionDirigentes() {
-      try {
-        const data = await fetchJsonOrThrow(API_URL + '?action=asignacion_dirigentes&v=' + Date.now());
-        if (data && data.asignaciones) {
-          state.asignacionDirigentes = data.asignaciones;
-          console.log('Asignacion dirigentes cargada:', Object.keys(data.asignaciones).length, 'registros');
+    // ==================== CARGAR ASIGNACION DIRIGENTES DESDE CSV ====================
+    function cargarAsignacionDirigentes() {
+      // Ahora se lee directo del CSV (columna J) al hacer el parseo
+      // Esta función solo actualiza el mapa por compatibilidad
+      state.asignacionDirigentes = {};
+      state.padron.forEach(e => {
+        if (e.dirigente) {
+          state.asignacionDirigentes[e.cedula] = e.dirigente;
         }
-      } catch (error) {
-        console.error('Error cargando asignacion dirigentes:', error);
-        // No bloqueante - no mostrar mensaje de error al usuario
-      }
+      });
+      console.log('Asignacion dirigentes desde CSV:', Object.keys(state.asignacionDirigentes).length, 'registros');
     }
 
     // ==================== BUSCAR POR CEDULA ====================
@@ -637,7 +638,7 @@
                     
                     let btnClass = "bg-white text-slate-400 border border-slate-200 hover:border-red-300 hover:text-red-600";
                     
-                    const tieneDirigente = elector && state.asignacionDirigentes[elector.cedula];
+                    const tieneDirigente = elector && elector.dirigente;
                     
                     if (voto?.controversia) {
                       btnClass = "bg-orange-600 text-white font-black border-orange-700";
@@ -689,7 +690,7 @@
                       ${electoresMesa.map(e => {
                         const orden = e.orden;
                         const voto = state.votos[getVotoKey(state.mesaSeleccionada, orden)];
-                        const tieneDirigente = state.asignacionDirigentes[e.cedula];
+                        const tieneDirigente = e.dirigente;
                         
                         let estadoLabel, estadoClass, estadoIcon;
                         if (voto?.controversia) {
