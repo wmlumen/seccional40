@@ -25,6 +25,7 @@ const SHEET_RESUMEN = 'Resumen';
 const SHEET_NO_VOTO = 'No_voto';
 const SHEET_RESPUESTAS = 'Respuestas de formulario 1';
 const SHEET_DIRIGENTES = 'Dirigentes';
+const SHEET_PADRON = 'Padron';
 const SHEET_MIEMBROS_MESA = 'Miembros_mesa';
 const SHEET_PENDIENTES_QR = 'Pendientes_QR';
 const SPREADSHEET_ID = '1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I';
@@ -388,6 +389,162 @@ function doGet(e) {
         }))
         .filter(d => d.cedula && d.nombre);
       return jsonResponse({ dirigentes: dirigentes, total: dirigentes.length });
+    }
+
+    if (action === 'padron_unificado') {
+      // ============================================================
+      // Endpoint: padron_unificado
+      // Aglutina datos de Padron + Registros (votos) + No_voto
+      // Para cada elector del padrón muestra:
+      //   - estado: 'voto' | 'no_voto' | 'sin_registro'
+      //   - datos del dirigente que registró (si aplica)
+      // Filtros opcionales: mesa, dirigente
+      // ============================================================
+      const filtroMesa = e.parameter.mesa ? parseInt(e.parameter.mesa) : null;
+      const filtroDirigente = e.parameter.dirigente ? normalizarTexto(e.parameter.dirigente) : null;
+      
+      // 1) Leer Padron
+      var padronSheet = ss.getSheetByName(SHEET_PADRON);
+      var electores = [];
+      if (padronSheet && padronSheet.getLastRow() >= 2) {
+        var padronData = padronSheet.getRange(2, 1, padronSheet.getLastRow() - 1, 11).getValues();
+        for (var i = 0; i < padronData.length; i++) {
+          var row = padronData[i];
+          // Columnas: SECC(0), N°(1), LOCAL(2), MESA(3), ORDEN(4), CEDULA(5), APELLIDO(6), NOMBRE(7), FEC.NAC(8), DIRIGENTE(9), VOTO(10)
+          var cedula = String(row[5] || '').replace(/[.\s,-]/g, '').trim();
+          if (!cedula) continue;
+          var mesaVal = parseInt(row[3]) || 0;
+          if (filtroMesa && mesaVal !== filtroMesa) continue;
+          electores.push({
+            secc: String(row[0] || '').trim(),
+            num: String(row[1] || '').trim(),
+            local: String(row[2] || '').trim(),
+            mesa: mesaVal,
+            orden: parseInt(row[4]) || 0,
+            cedula: cedula,
+            apellido: String(row[6] || '').trim(),
+            nombre: String(row[7] || '').trim(),
+            nombreCompleto: (String(row[6] || '') + ' ' + String(row[7] || '')).trim(),
+            estado: 'sin_registro',
+            dirigenteCedula: '',
+            dirigenteNombre: '',
+            timestamp: null
+          });
+        }
+      }
+      
+      // 2) Leer Registros (votos) y construir mapa cédula -> último voto
+      var votosPorCedula = {};
+      var registrosSheet = ss.getSheetByName(SHEET_REGISTROS);
+      if (registrosSheet && registrosSheet.getLastRow() >= 2) {
+        var regData = registrosSheet.getRange(2, 1, registrosSheet.getLastRow() - 1, 10).getValues();
+        for (var i = 0; i < regData.length; i++) {
+          var r = regData[i];
+          var ced = String(r[1] || '').replace(/[.\s,-]/g, '').trim();
+          if (!ced) continue;
+          var estado = String(r[5] || '').trim().toLowerCase();
+          // Solo interesan los registros con estado 'voto' o 'ausente' (contabilizar como voto)
+          if (estado !== 'voto' && estado !== 'ausente') continue;
+          var ts = new Date(r[0]).getTime() || 0;
+          // Conservar el más reciente por cédula
+          if (!votosPorCedula[ced] || ts > votosPorCedula[ced].timestamp) {
+            votosPorCedula[ced] = {
+              estado: estado,
+              timestamp: ts,
+              dirigenteCedula: String(r[7] || '').trim(),
+              dirigenteNombre: String(r[8] || '').trim()
+            };
+          }
+        }
+      }
+      
+      // 3) Leer No_voto y construir mapa cédula
+      var noVotosPorCedula = {};
+      var noVotoSheet = ss.getSheetByName(SHEET_NO_VOTO);
+      if (noVotoSheet && noVotoSheet.getLastRow() >= 2) {
+        var nvData = noVotoSheet.getRange(2, 1, noVotoSheet.getLastRow() - 1, 6).getValues();
+        for (var i = 0; i < nvData.length; i++) {
+          var n = nvData[i];
+          var cedN = String(n[1] || '').replace(/[.\s,-]/g, '').trim();
+          if (!cedN) continue;
+          var tsN = new Date(n[0]).getTime() || 0;
+          if (!noVotosPorCedula[cedN] || tsN > noVotosPorCedula[cedN].timestamp) {
+            noVotosPorCedula[cedN] = {
+              timestamp: tsN,
+              motivo: String(n[4] || '').trim(),
+              observacion: String(n[5] || '').trim()
+            };
+          }
+        }
+      }
+      
+      // 4) Fusionar estados
+      for (var i = 0; i < electores.length; i++) {
+        var e = electores[i];
+        var voto = votosPorCedula[e.cedula];
+        var noVoto = noVotosPorCedula[e.cedula];
+        
+        // Prioridad: voto > no_voto > sin_registro
+        if (voto) {
+          e.estado = 'voto';
+          e.dirigenteCedula = voto.dirigenteCedula;
+          e.dirigenteNombre = voto.dirigenteNombre;
+          e.timestamp = voto.timestamp;
+        } else if (noVoto) {
+          e.estado = 'no_voto';
+          e.timestamp = noVoto.timestamp;
+          e.motivoNoVoto = noVoto.motivo;
+          e.observacionNoVoto = noVoto.observacion;
+        }
+        // sin_registro queda como está
+      }
+      
+      // 5) Filtrar por dirigente si se especificó
+      if (filtroDirigente) {
+        electores = electores.filter(function(e) {
+          var dc = normalizarTexto(e.dirigenteNombre).toLowerCase();
+          return dc.indexOf(filtroDirigente.toLowerCase()) !== -1 ||
+                 normalizarTexto(e.dirigenteCedula).indexOf(filtroDirigente) !== -1;
+        });
+      }
+      
+      // 6) Recolectar dirigentes disponibles (para filtros en frontend)
+      var dirigentesSet = {};
+      for (var i = 0; i < electores.length; i++) {
+        var dn = electores[i].dirigenteNombre;
+        var dc = electores[i].dirigenteCedula;
+        if (dn && dc) {
+          dirigentesSet[dc] = dn;
+        }
+      }
+      var dirigentesList = [];
+      for (var ced in dirigentesSet) {
+        dirigentesList.push({ cedula: ced, nombre: dirigentesSet[ced] });
+      }
+      dirigentesList.sort(function(a, b) { return a.nombre.localeCompare(b.nombre); });
+      
+      // 7) Recolectar mesas disponibles
+      var mesasSet = {};
+      for (var i = 0; i < electores.length; i++) {
+        mesasSet[electores[i].mesa] = true;
+      }
+      var mesasList = Object.keys(mesasSet).map(Number).sort(function(a, b) { return a - b; });
+      
+      return jsonResponse({
+        electores: electores,
+        total: electores.length,
+        dirigentes: dirigentesList,
+        mesas: mesasList,
+        filtros: {
+          mesa: filtroMesa,
+          dirigente: filtroDirigente
+        },
+        resumen: {
+          voto: electores.filter(function(e) { return e.estado === 'voto'; }).length,
+          no_voto: electores.filter(function(e) { return e.estado === 'no_voto'; }).length,
+          sin_registro: electores.filter(function(e) { return e.estado === 'sin_registro'; }).length
+        }
+      });
     }
 
     if (action === 'miembros_mesa_v2') {

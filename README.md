@@ -7,10 +7,13 @@ Sistema web completo para control de votación electoral - Seccional 40.
 | Página | Dirigente | Miembro de Mesa | PC |
 |--------|-----------|-----------------|-----|
 | **index.html** (Votación) | ❌ NO | ✅ SÍ (habilitado) | ❌ NO |
+| **dirigente.html** (Panel Dirigente) | ✅ SÍ | ❌ NO | ❌ NO |
 | **No_voto.html** (Registro No Voto) | ✅ SÍ | ❌ NO | ✅ SÍ |
 | **mesas.html** (Estado Mesas) | ✅ SÍ | ❌ NO | ✅ SÍ |
+| **padron_unificado.html** (Padrón Unificado) | ✅ SÍ | ❌ NO | ✅ SÍ |
 | **asistencia.html** (Seguimiento) | ❌ NO | ❌ NO | ✅ SÍ |
 | **anomalias.html** (Monitoreo) | ❌ NO | ❌ NO | ✅ SÍ |
+| **registro_qr.html** (QR) | ❌ NO | ❌ NO | ✅ SÍ |
 
 ## 🔑 Acceso por Rol
 
@@ -24,16 +27,19 @@ Sistema web completo para control de votación electoral - Seccional 40.
 
 | Enlace | Descripción | Acceso |
 |--------|-------------|--------|
-| 🗳️ **Votación** | [index.html](https://wmlumen.github.io/seccional40/index.html) | Sistema principal de votación con 350 botones por mesa |
+| 🗳️ **Votación** | [index.html](https://wmlumen.github.io/seccional40/index.html) | Sistema principal de votación con grilla ajustable por mesa |
+| 👤 **Dirigente** | [dirigente.html](https://wmlumen.github.io/seccional40/dirigente.html) | Panel privado del dirigente con estadísticas y registro |
 | 🏛️ **Mesas** | [mesas.html](https://wmlumen.github.io/seccional40/mesas.html) | Vista general de todas las mesas con estadísticas |
 | 🚫 **No Voto** | [No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) | Registro de personas que no votarán |
+| 📋 **Padrón Unificado** | [padron_unificado.html](https://wmlumen.github.io/seccional40/padron_unificado.html) | Padrón completo con estado (voto/no_voto/sin_registro), filtros por mesa y dirigente, ordenable |
 
 ### Panel de Control (PC - Monitoreo)
 
 | Enlace | Descripción | Acceso |
 |--------|-------------|--------|
-| 📊 **Seguimiento del Dirigente** | [asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) | Reporte por dirigente y mesa en tiempo real |
+| 📊 **Seguimiento** | [asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) | Reporte por dirigente y mesa en tiempo real |
 | 🚨 **Anomalías** | [anomalias.html](https://wmlumen.github.io/seccional40/anomalias.html) | Detección de intervalos voto-a-voto anómalos |
+| 📱 **QR** | [registro_qr.html](https://wmlumen.github.io/seccional40/registro_qr.html) | Registro de asistencia por código QR |
 
 ## 📝 Acceso
 
@@ -44,7 +50,7 @@ Sistema web completo para control de votación electoral - Seccional 40.
 ## 🔗 Navegación entre Páginas
 
 Todos los archivos incluyen un **menú de navegación** en el header que permite moverse entre:
-- **Colegio:** Votación → Mesas → No Voto
+- **Colegio:** Votación → Dirigente → Mesas → No Voto → Padrón
 - **PC:** Anomalías → Seguimiento
 
 ## 📊 Funcionalidades por Módulo
@@ -64,6 +70,23 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 - Votos registrados y participación
 - Gráfico de barras por mesa
 - Actualiza cada 30 segundos
+
+### 👤 dirigente.html (Panel del Dirigente)
+- Acceso con cédula y contraseña desde hoja Dirigentes
+- Estadísticas de votos, ausentes, controversias y no votos
+- Registro de comunicaciones por elector
+- Registro de No Voto
+- Tablas filtrables por estado
+- Actualiza cada 10 segundos
+
+### 📋 padron_unificado.html (Padrón Unificado)
+- Aglutina datos de **Padron** + **Registros** (votos) + **No_voto**
+- Prioridad: si aparece como voto → muestra VOTO (aunque también esté en No_voto)
+- **Filtros:** por Mesa, por Dirigente, por Estado, búsqueda por cédula/nombre
+- **Ordenamiento:** Sin registro primero, Voto primero, No voto primero
+- Resumen visual con totales
+- Tabla con código de colores por estado
+- Sincronizado con sesión unificada del sistema
 
 ### 🚫 No_voto.html (No Voto)
 - Registro de personas que no votarán
@@ -110,7 +133,7 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 
 **URL configurada en todos los archivos:**
 ```javascript
-const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycby8Fw0HaV7ZS3hGL2lbzjsdPiJsdQcyMPmw9OBB5KFTN-qU3NS4GGR1Q3CMl4mJpNN6vg/exec';
 ```
 
 **IMPORTANTE:** Después del redeploy, actualizar esta URL en todos los archivos HTML si cambia.
@@ -134,8 +157,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seK
 | Endpoint | Descripción |
 |----------|-------------|
 | `POST` | Registrar voto (va a Registros) o no-voto (va a No_voto) |
-| `?action=votos` | Obtener todos los votos |
+| `?action=votos` | Obtener todos los votos (desde hoja Registros) |
 | `?action=no_votos` | Obtener todos los no-votos desde hoja No_voto |
+| `?action=padron_unificado` | Obtener padrón completo fusionado (Padron + Registros + No_voto). Parámetros opcionales: `&mesa=N`, `&dirigente=CEDULA` |
 | `?action=dirigentes` | Obtener lista de dirigentes desde hoja Dirigentes |
 | `?action=miembros_mesa` | Obtener lista de miembros de mesa desde hoja Miembros_mesa |
 | `?action=miembros_mesa_v2` | Obtener lista normalizada de miembros con estado y horarios |
@@ -154,40 +178,44 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seK
 ## 🔄 Flujo de Datos
 
 ```
-┌─────────────────────────────────────────┐
-│         Google Sheets (Excel)           │
-│  ┌──────────┐ ┌──────────┐ ┌────────┐ │
-│  │ Registros│ │Dirigentes│ │No_voto │ │
-│  └──────────┘ └──────────┘ └────────┘ │
-│  ┌──────────┐ ┌──────────┐             │
-│  │ Miembros │ │  Resumen │             │
-│  │  _mesa   │ │          │             │
-│  └──────────┘ └──────────┘             │
-└─────────────────────────────────────────┘
-                    │
-                    │ API (Google Apps Script)
-                    │
-    ┌───────────────┼───────────────┐
-    │               │               │
-┌───▼───┐     ┌────▼────┐    ┌────▼───┐
-│ index │                 │No_voto │
-│ .html │     │ .html   │    │ .html  │
-│(Miembro│     │(Dirigen)│    │(Dir/PC)│
-└───┬───┘     └────┬────┘    └───┬────┘
-    │              │             │
-    │              │             │
-    └──────────────┼─────────────┘
-                   │
-         ┌─────────▼──────────┐
-         │     PC (PC)        │
-         │ ┌──────┐ ┌────────┐│
-         │ │mesas │ │anomalia││
-         │ │.html │ │s.html  ││
-         │ └──────┘ └────────┘│
-         │ ┌──────────────┐   │
-         │ │asistencia.html│  │
-         │ └──────────────┘   │
-         └────────────────────┘
+┌──────────────────────────────────────────────┐
+│           Google Sheets (Votacion)           │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │
+│  │  Padron  │ │Registros│ │   No_voto    │ │
+│  │(electores)│ │ (votos)  │ │ (no votarán) │ │
+│  └──────────┘ └──────────┘ └──────────────┘ │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ │
+│  │Dirigentes│ │ Miembros │ │   Resumen    │ │
+│  │          │ │  _mesa   │ │              │ │
+│  └──────────┘ └──────────┘ └──────────────┘ │
+└──────────────────────────────────────────────┘
+                      │
+                      │ API (Google Apps Script)
+                      │
+       ┌──────────────┼──────────────────┐
+       │              │                  │
+   ┌───▼────┐   ┌────▼────┐       ┌────▼──────┐
+   │ index  │   │dirigente│       │padron_uni │
+   │ .html  │   │ .html   │       │ficado.html│
+   │(votación│   │(dirigente)      │(PC/Dirig.)│
+   └───┬────┘   └────┬────┘       └────┬──────┘
+       │             │                 │
+       │    ┌────────▼────────┐        │
+       │    │  No_voto.html   │        │
+       │    │  mesas.html     │        │
+       │    │  anomalias.html │        │
+       │    │ asistencia.html │        │
+       │    │ registro_qr.html│        │
+       │    └─────────────────┘        │
+       └───────────────┬───────────────┘
+                       │
+              ┌────────▼─────────┐
+              │  Google Sheets   │
+              │  (escritura)     │
+              │  Registros       │
+              │  No_voto         │
+              │  Resumen         │
+              └──────────────────┘
 ```
 
 ---
