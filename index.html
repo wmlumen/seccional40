@@ -58,7 +58,8 @@
       showQR: false,
       veedor: 'Veedor Actual',
       veedorNombre: 'Veedor Actual',
-      miembroActual: null
+      miembroActual: null,
+      vistaLista: false
     };
 
     // ==================== LOGIN ====================
@@ -599,17 +600,26 @@
                 </div>
               </div>
 
-              <!-- CONTROL DE COLUMNAS -->
+              <!-- CONTROL DE COLUMNAS Y VISTA -->
               <div class="bg-white p-3 rounded-[2rem] shadow-2xl border border-slate-100 mb-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div class="flex items-center gap-2">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Columnas:</span>
                     ${[10, 20, 30, 40, 50].map(n => `
-                      <button onclick="state.gridColumns=${n}; render();"
-                        class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${state.gridColumns === n ? 'bg-red-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                      <button onclick="state.gridColumns=${n}; state.vistaLista=false; render();"
+                        class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${!state.vistaLista && state.gridColumns === n ? 'bg-red-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
                         ${n}
                       </button>
                     `).join('')}
+                    <span class="mx-1 text-slate-200">|</span>
+                    <button onclick="state.vistaLista=false; render();"
+                      class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${!state.vistaLista ? 'bg-red-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                      <i class="fas fa-th-large mr-1"></i> Grilla
+                    </button>
+                    <button onclick="state.vistaLista=true; render();"
+                      class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${state.vistaLista ? 'bg-red-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                      <i class="fas fa-list mr-1"></i> Lista
+                    </button>
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="text-[10px] text-slate-400 font-bold">${cantidadBotones} electores</span>
@@ -617,6 +627,7 @@
                 </div>
               </div>
 
+              ${!state.vistaLista ? `
               <!-- GRID DE BOTONES -->
               <div class="bg-white p-4 rounded-[2rem] shadow-2xl border border-slate-100">
                 <div class="grid-mesa" style="grid-template-columns: repeat(${Math.min(state.gridColumns, cantidadBotones || 1)}, 1fr)">
@@ -658,6 +669,76 @@
                     `;
                   }).join('')}
                 </div>
+              </div>
+              ` : `
+              <!-- VISTA LISTA -->
+              <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
+                <div class="max-h-[600px] overflow-y-auto scroll-hidden">
+                  <table class="w-full text-sm">
+                    <thead class="sticky top-0 z-10">
+                      <tr class="bg-red-900 text-white">
+                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">#</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">Cédula</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">Apellido</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">Nombre</th>
+                        <th class="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wider">Estado</th>
+                        <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">Dirigente</th>
+                        <th class="px-3 py-2 text-center text-[10px] font-bold uppercase tracking-wider"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${electoresMesa.map(e => {
+                        const orden = e.orden;
+                        const voto = state.votos[getVotoKey(state.mesaSeleccionada, orden)];
+                        const tieneDirigente = state.asignacionDirigentes[e.cedula];
+                        
+                        let estadoLabel, estadoClass, estadoIcon;
+                        if (voto?.controversia) {
+                          estadoLabel = 'CONTROVERSIA';
+                          estadoClass = 'bg-rose-100 text-rose-700 border-rose-200';
+                          estadoIcon = 'fa-exclamation-triangle';
+                        } else if (voto?.tipo === 'voto') {
+                          estadoLabel = 'VOTO';
+                          estadoClass = 'bg-green-100 text-green-700 border-green-200';
+                          estadoIcon = 'fa-check-circle';
+                        } else if (voto?.tipo === 'ausente') {
+                          estadoLabel = 'AUSENTE';
+                          estadoClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                          estadoIcon = 'fa-user-slash';
+                        } else {
+                          estadoLabel = 'SIN REGISTRO';
+                          estadoClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                          estadoIcon = 'fa-hourglass-half';
+                        }
+                        
+                        const dirigenteNombre = tieneDirigente || '';
+                        
+                        return `
+                          <tr class="border-b border-slate-100 hover:bg-red-50/50 transition-all cursor-pointer" onclick="mostrarOpcionesVoto(${orden})">
+                            <td class="px-3 py-2 font-black text-slate-900">${orden}</td>
+                            <td class="px-3 py-2 font-mono font-bold text-slate-700">${e.cedula}</td>
+                            <td class="px-3 py-2 font-bold text-slate-900">${e.apellido}</td>
+                            <td class="px-3 py-2 font-bold text-slate-900">${e.nombre}</td>
+                            <td class="px-3 py-2 text-center">
+                              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg border ${estadoClass}">
+                                <i class="fas ${estadoIcon}"></i>
+                                ${estadoLabel}
+                              </span>
+                            </td>
+                            <td class="px-3 py-2 text-xs text-slate-600">${dirigenteNombre || '-'}</td>
+                            <td class="px-3 py-2 text-center">
+                              <button onclick="event.stopPropagation(); mostrarOpcionesVoto(${orden})" class="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-bold rounded-lg transition-all">
+                                <i class="fas fa-pen"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              `}
                 
                 <div class="mt-4 flex flex-wrap gap-3 justify-center text-xs">
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-white border border-slate-200 rounded"></div><span>Sin marcar</span></div>
@@ -667,7 +748,6 @@
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-slate-200 rounded"></div><span>Ausente</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-rose-600 rounded"></div><span>Controversia</span></div>
                 </div>
-              </div>
             </div>
           `}
         </main>
