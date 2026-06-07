@@ -25,7 +25,7 @@ const SHEET_RESUMEN = 'Resumen';
 const SHEET_NO_VOTO = 'No_voto';
 const SHEET_RESPUESTAS = 'Respuestas de formulario 1';
 const SHEET_DIRIGENTES = 'Dirigentes';
-const SHEET_PADRON = 'Padron';
+const SHEET_PADRON = 'Padrón';
 const SHEET_MIEMBROS_MESA = 'Miembros_mesa';
 const SHEET_PENDIENTES_QR = 'Pendientes_QR';
 const SPREADSHEET_ID = '1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I';
@@ -285,11 +285,12 @@ function doGet(e) {
         message: 'API funcionando correctamente',
         timestamp: new Date().toISOString(),
         sheets: {
-          registros: ss.getSheetByName(SHEET_REGISTROS) ? 'Existe' : 'No existe',
-          no_voto: ss.getSheetByName(SHEET_NO_VOTO) ? 'Existe' : 'No existe',
-          dirigentes: ss.getSheetByName(SHEET_DIRIGENTES) ? 'Existe' : 'No existe',
-          resumen: ss.getSheetByName(SHEET_RESUMEN) ? 'Existe' : 'No existe'
-        }
+           registros: ss.getSheetByName(SHEET_REGISTROS) ? 'Existe' : 'No existe',
+           no_voto: ss.getSheetByName(SHEET_NO_VOTO) ? 'Existe' : 'No existe',
+           dirigentes: ss.getSheetByName(SHEET_DIRIGENTES) ? 'Existe' : 'No existe',
+           resumen: ss.getSheetByName(SHEET_RESUMEN) ? 'Existe' : 'No existe',
+           padron: ss.getSheetByName(SHEET_PADRON) ? 'Existe' : 'No existe'
+         }
       });
     }
     
@@ -403,8 +404,9 @@ function doGet(e) {
       const filtroMesa = e.parameter.mesa ? parseInt(e.parameter.mesa) : null;
       const filtroDirigente = e.parameter.dirigente ? normalizarTexto(e.parameter.dirigente) : null;
       
-      // 1) Leer Padron
+      // 1) Leer Padron (intentar con y sin acento)
       var padronSheet = ss.getSheetByName(SHEET_PADRON);
+      if (!padronSheet) padronSheet = ss.getSheetByName('Padron');
       var electores = [];
       if (padronSheet && padronSheet.getLastRow() >= 2) {
         var padronData = padronSheet.getRange(2, 1, padronSheet.getLastRow() - 1, 11).getValues();

@@ -84,7 +84,8 @@
                     state.mesas = data.mesas || [];
                     state.mensaje = `✅ ${data.total} electores · ${data.resumen.voto} votos · ${data.resumen.no_voto} no votos · ${data.resumen.sin_registro} sin registro`;
                 } else {
-                    state.mensaje = '⚠️ Error: no se pudieron cargar los datos';
+                    state.mensaje = '⚠️ Error del servidor: ' + (data.error || data.message || 'no se pudieron cargar los datos');
+                    console.error('Respuesta inesperada:', data);
                 }
             } catch (err) {
                 console.error('Error:', err);
