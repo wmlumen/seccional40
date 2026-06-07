@@ -47,26 +47,9 @@ Sistema web para control de votación electoral - Seccional 40.
 
 ### 2. **Configurar URL del API**
 
-Pegar la URL en **cuatro archivos**:
-
-**`index.html`:**
+**URL del Web App configurada en todos los archivos:**
 ```javascript
-const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
-```
-
-**`asistencia.html`:**
-```javascript
-const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
-```
-
-**`No_voto.html`:**
-```javascript
-const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
-```
-
-**`anomalias.html`:**
-```javascript
-const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
 ```
 
 ## 💾 ¿Dónde se guardan los votos?
