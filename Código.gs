@@ -105,7 +105,7 @@ function doGet(e) {
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ mesa: mesaNum, registros: [] });
       }
-      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getValues();
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
       const registros = allData
         .filter(row => parseInt(row[3]) === mesaNum)
         .map(row => ({
@@ -116,9 +116,32 @@ function doGet(e) {
           orden: row[4],
           estado: row[5],
           accion: row[6],
-          dirigente: row[7]
+          dirigente: row[7],
+          dirigenteNombre: row[8]
         }));
       return jsonResponse({ mesa: mesaNum, registros: registros });
+    }
+    
+    if (action === 'votos') {
+      const sheet = ss.getSheetByName(SHEET_NAME);
+      if (!sheet || sheet.getLastRow() < 2) {
+        return jsonResponse({ registros: [], total: 0 });
+      }
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 10).getValues();
+      const registros = allData
+        .map(row => ({
+          timestamp: row[0],
+          cedula: row[1],
+          nombre: row[2],
+          mesa: row[3],
+          orden: row[4],
+          estado: row[5],
+          accion: row[6],
+          dirigente: row[7],
+          dirigenteNombre: row[8]
+        }))
+        .reverse(); // Más recientes primero
+      return jsonResponse({ registros: registros, total: registros.length });
     }
     
     return jsonResponse({ success: false, error: 'Unknown action' });

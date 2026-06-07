@@ -1576,7 +1576,28 @@
 
     <script>
         const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
+        const API_URL = 'https://script.google.com/macros/s/AKfycb.../exec'; // ← PEGAR AQUÍ LA URL DEL WEB APP
         let padronData = [];
+        let datosVotosDesdeAPI = [];
+        
+        async function cargarDatosDesdeAPI() {
+            if (!API_URL || API_URL.includes('AKfycb')) {
+                console.warn('API_URL no configurada en asistencia.html');
+                return [];
+            }
+            try {
+                const resp = await fetch(API_URL + '?action=votos');
+                const data = await resp.json();
+                if (data && data.registros) {
+                    datosVotosDesdeAPI = data.registros;
+                    return data.registros;
+                }
+                return [];
+            } catch (e) {
+                console.error('Error cargando datos desde API:', e);
+                return [];
+            }
+        }
         
         async function cargarPadronDesdeCSV() {
             try {
@@ -1613,15 +1634,90 @@
         }
 
         // ==================== VOTOS RECIENTES ====================
-        function renderVotosRecientes() {
+        async function renderVotosRecientes() {
             const tbody = document.getElementById('votos-recientes-body');
             const counter = document.getElementById('votos-recientes-count');
             if (!tbody) return;
 
-            // Sin localStorage, no hay votos recientes disponibles
-            // Los votos se envían directamente a Google Sheets
-            tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-info-circle"></i><div class="empty-state-text">Los votos se registran en Google Sheets en tiempo real</div></td></tr>';
-            if (counter) counter.textContent = '0';
+            // Cargar datos desde API
+            const registros = await cargarDatosDesdeAPI();
+            
+            if (!registros || registros.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-info-circle"></i><div class="empty-state-text">Esperando datos de Google Sheets...<br>Configure API_URL en el código</div></td></tr>';
+                if (counter) counter.textContent = '0';
+                return;
+            }
+            
+            // Filtrar solo votos (no consultas)
+            const votosRegistros = registros.filter(r => r.estado === 'voto');
+            
+            if (counter) counter.textContent = String(votosRegistros.length);
+            
+            // Formatear registros
+            const registrosFormateados = votosRegistros.map(r => {
+                const timestamp = r.timestamp || '';
+                const d = new Date(timestamp);
+                const fecha = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth()+1).padStart(2, '0') + '/' + d.getFullYear();
+                const hora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+                return {
+                    fecha,
+                    hora,
+                    timestamp: d.getTime(),
+                    nombre: (r.nombre || '').toUpperCase(),
+                    cedula: (r.cedula || '').toString().replace(/\./g, ''),
+                    mesa: r.mesa || '-',
+                    orden: r.orden || '-',
+                    dirigente: r.dirigenteNombre || r.dirigente || 'Dirigente'
+                };
+            });
+            
+            if (registrosFormateados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-inbox"></i><div class="empty-state-text">Aún no hay votos registrados</div></td></tr>';
+                return;
+            }
+            
+            // Agrupar por fecha
+            const porFecha = {};
+            registrosFormateados.forEach(r => {
+                const key = r.fecha || 'Sin fecha';
+                if (!porFecha[key]) porFecha[key] = [];
+                porFecha[key].push(r);
+            });
+            
+            // Ordenar fechas (más reciente primero)
+            const fechasOrdenadas = Object.keys(porFecha).sort((a, b) => {
+                const parseFecha = (f) => {
+                    const p = f.split('/');
+                    return new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+                };
+                return parseFecha(b) - parseFecha(a);
+            });
+            
+            let html = '';
+            fechasOrdenadas.forEach(fecha => {
+                const lista = porFecha[fecha];
+                const unicosDia = new Set(lista.map(r => r.cedula).filter(Boolean)).size;
+                html += `<tr class="fecha-header">
+                    <td colspan="4">
+                        <div class="fecha-badge">
+                            <i class="fas fa-calendar-day"></i>
+                            <span class="fecha-texto">${fecha}</span>
+                            <span class="fecha-count">${unicosDia} votos</span>
+                        </div>
+                    </td>
+                </tr>`;
+                
+                lista.forEach(r => {
+                    html += `<tr class="registro-row">
+                        <td class="hora-cell">${r.hora || '--:--'}</td>
+                        <td>${r.nombre || 'Sin nombre'}</td>
+                        <td>${r.cedula || '-'}</td>
+                        <td>${r.mesa}</td>
+                    </tr>`;
+                });
+            });
+            
+            tbody.innerHTML = html;
         }
 
             // Convertir a array de registros de votos
@@ -1753,9 +1849,9 @@
                 
                 const padron = padronData || [];
                 
-                // Sin localStorage, no tenemos datos de votos en tiempo real
-                // Los votos se envían directamente a Google Sheets
-                const datosVotos = {};
+                // Cargar datos desde Google Sheets API en tiempo real
+                const registrosAPI = await cargarDatosDesdeAPI();
+                const datosVotos = registrosAPI || [];
                 
                 // Si no hay datos, mostrar mensaje
                 if (!padron || padron.length === 0) {
@@ -1781,8 +1877,20 @@
                     mesas[p.mesa].total++;
                 });
                 
-                // Contar votos por mesa (sin localStorage, no hay votos locales)
-                // Los datos reales están en Google Sheets
+                // Contar votos por mesa desde API
+                datosVotos.forEach(voto => {
+                    const mesaNum = parseInt(voto.mesa) || 0;
+                    if (mesas[mesaNum]) {
+                        if (voto.estado === 'voto') {
+                            mesas[mesaNum].votos++;
+                        } else if (voto.estado === 'ausente') {
+                            mesas[mesaNum].ausentes++;
+                        }
+                        if (voto.estado === 'controversia') {
+                            mesas[mesaNum].controversias++;
+                        }
+                    }
+                });
                 
                 // Calcular estadísticas
                 const totalMesas = Object.keys(mesas).length;
@@ -1804,20 +1912,19 @@
                 document.getElementById('resumen-ausentes').innerHTML = `<i class="fas fa-times-circle" style="color: #fca5a5;"></i> ${totalAusentes} ausentes`;
                 document.getElementById('resumen-controversias').innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i> ${totalControversias} controversias`;
                 
-                // Calcular votos por dirigente
+                // Calcular votos por dirigente desde API
                 const dirigentes = {};
-                Object.keys(datosVotos).forEach(orden => {
-                    const voto = datosVotos[orden];
-                    const dir = voto.dirigente || 'Dirigente';
+                datosVotos.forEach(voto => {
+                    const dir = voto.dirigenteNombre || voto.dirigente || 'Dirigente';
                     if (!dirigentes[dir]) {
                         dirigentes[dir] = { votos: 0, ausentes: 0, controversias: 0, total: 0 };
                     }
-                    if (voto.tipo === 'voto') {
+                    if (voto.estado === 'voto') {
                         dirigentes[dir].votos++;
-                    } else if (voto.tipo === 'ausente') {
+                    } else if (voto.estado === 'ausente') {
                         dirigentes[dir].ausentes++;
                     }
-                    if (voto.controversia) {
+                    if (voto.estado === 'controversia') {
                         dirigentes[dir].controversias++;
                     }
                     dirigentes[dir].total++;

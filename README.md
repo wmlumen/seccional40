@@ -24,9 +24,35 @@ Sistema web para control de votación electoral - Seccional 40.
 - Código QR para transferencia de posta
 - Registro automático a Google Sheets
 
+## ⚙️ Configuración
+
+### 1. **Configurar Google Apps Script**
+
+1. Abrir el editor: `Extensiones` → `Apps Script` en tu Google Sheet
+2. Copiar el código completo de `Código.gs`
+3. Guardar (Ctrl+S)
+4. `Implementar` → `Nueva implementación` → `Aplicación web`
+5. Ejecutar como: Tu cuenta
+6. Acceso: Cualquiera, incluso anónimo
+7. **Copiar la URL** generada
+
+### 2. **Configurar URL del API**
+
+Pegar la URL en **dos archivos**:
+
+**`index.html`:**
+```javascript
+const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
+```
+
+**`asistencia.html`:**
+```javascript
+const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
+```
+
 ## 💾 ¿Dónde se guardan los votos?
 
-Los votos se guardan directamente en **Google Sheets** (no se usa localStorage):
+Los votos se guardan directamente en **Google Sheets** en tiempo real:
 
 ### 1. **Google Sheets** (Base de datos principal)
 **URL:** [https://docs.google.com/spreadsheets/d/1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I/edit](https://docs.google.com/spreadsheets/d/1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I/edit)
@@ -36,10 +62,9 @@ Los votos se guardan directamente en **Google Sheets** (no se usa localStorage):
 - Hoja **"Resumen"**: Estadísticas por mesa
 - Hoja **"dirigentes"**: Lista de dirigentes (cédula, nombre)
 
-### 2. **Google Apps Script** (Backend)
-- Recibe los datos desde `index.html` vía POST
-- Guarda en las hojas de Google Sheets en tiempo real
-- No se guarda nada en el navegador (localStorage desactivado)
+### 2. **Panel de Reporte en tiempo real**
+- El panel `asistencia.html` lee los datos directamente desde Google Sheets cada 5 segundos
+- No se usa localStorage (todos los datos van directo a la nube)
 
 ## 🚀 Tecnologías
 
