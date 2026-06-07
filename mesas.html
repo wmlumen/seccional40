@@ -27,6 +27,7 @@
             padron: [],
             mesas: {},
             votos: [],
+            miembros: [],
             ultimaActualizacion: null,
             mensaje: ''
         };
@@ -47,9 +48,10 @@
             render();
             
             try {
-                const [padronResp, votosResp] = await Promise.all([
+                const [padronResp, votosResp, miembrosResp] = await Promise.all([
                     fetch(PADRON_CSV_URL),
-                    fetch(API_URL + '?action=votos')
+                    fetch(API_URL + '?action=votos'),
+                    fetch(API_URL + '?action=miembros_mesa_v2')
                 ]);
                 
                 const padronText = await padronResp.text();
@@ -98,6 +100,9 @@
                         mesa.participacion = mesa.totalElectores > 0 ? ((votosMesa.length / mesa.totalElectores) * 100).toFixed(1) : 0;
                     });
                 }
+
+                const miembrosData = await miembrosResp.json();
+                state.miembros = miembrosData && miembrosData.miembros ? miembrosData.miembros : [];
                 
                 state.mesas = mesasData;
                 state.ultimaActualizacion = new Date();
@@ -109,6 +114,54 @@
                 state.mensaje = 'Error cargando datos';
             }
             render();
+        }
+
+        async function guardarMiembroMesa() {
+            const cedulaInput = document.getElementById('miembroCedula');
+            const nombreInput = document.getElementById('miembroNombre');
+            const passwordInput = document.getElementById('miembroPassword');
+            const mesaInput = document.getElementById('miembroMesa');
+            const estadoSelect = document.getElementById('miembroEstado');
+
+            const cedula = (cedulaInput ? cedulaInput.value : '').replace(/[.\s,-]/g, '').trim();
+            const nombre = nombreInput ? nombreInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value.trim() : '';
+            const mesa = mesaInput ? mesaInput.value.trim() : '';
+            const estado = estadoSelect ? estadoSelect.value : 'ACTIVO';
+
+            if (!cedula || !nombre || !password) {
+                alert('Cédula, nombre y contraseña son obligatorios.');
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    action: 'registrar_miembro',
+                    cedula: cedula,
+                    nombre: nombre,
+                    password: password,
+                    mesa: mesa,
+                    estado: estado
+                });
+                const response = await fetch(API_URL + '?' + params.toString());
+                const result = await response.json();
+
+                if (!result.success) {
+                    alert(result.error || 'No se pudo guardar el miembro.');
+                    return;
+                }
+
+                state.mensaje = `Miembro ${result.accion === 'actualizado' ? 'actualizado' : 'registrado'}: ${nombre}`;
+                if (cedulaInput) cedulaInput.value = '';
+                if (nombreInput) nombreInput.value = '';
+                if (passwordInput) passwordInput.value = '';
+                if (mesaInput) mesaInput.value = '';
+                if (estadoSelect) estadoSelect.value = 'ACTIVO';
+                await cargarDatos();
+            } catch (error) {
+                console.error('Error guardando miembro:', error);
+                alert('Error guardando miembro de mesa.');
+            }
         }
 
         function renderLogin() {
@@ -214,6 +267,52 @@
                             <p class="font-bold text-red-800 text-center text-sm">${state.mensaje}</p>
                         </div>
                     ` : ''}
+
+                    <div class="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6 mb-6">
+                        <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 p-4 md:p-6">
+                            <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">
+                                <i class="fas fa-user-shield text-red-600 mr-2"></i>Habilitar Miembro de Mesa
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input id="miembroCedula" type="text" placeholder="Cédula"
+                                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold focus:border-red-500 focus:outline-none">
+                                <input id="miembroNombre" type="text" placeholder="Nombre completo"
+                                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold focus:border-red-500 focus:outline-none">
+                                <input id="miembroPassword" type="text" placeholder="Contraseña de acceso"
+                                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold focus:border-red-500 focus:outline-none">
+                                <input id="miembroMesa" type="number" placeholder="Mesa asignada"
+                                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold focus:border-red-500 focus:outline-none">
+                                <select id="miembroEstado"
+                                    class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold focus:border-red-500 focus:outline-none bg-white">
+                                    <option value="ACTIVO">ACTIVO</option>
+                                    <option value="INACTIVO">INACTIVO</option>
+                                </select>
+                                <button onclick="guardarMiembroMesa()" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition-all shadow-lg">
+                                    GUARDAR MIEMBRO
+                                </button>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-3">Solo los miembros con estado ACTIVO podrán ingresar al módulo de votación.</p>
+                        </div>
+
+                        <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 p-4 md:p-6">
+                            <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">
+                                <i class="fas fa-users text-red-600 mr-2"></i>Miembros Habilitados
+                            </h2>
+                            <div class="space-y-3 max-h-80 overflow-y-auto">
+                                ${state.miembros.length > 0 ? state.miembros.map(m => `
+                                    <div class="border border-red-100 rounded-2xl p-3 bg-red-50/40">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p class="font-black text-slate-900">${m.nombre}</p>
+                                                <p class="text-xs text-slate-500">CI: ${m.cedula} | Mesa: ${m.mesa || '-'}</p>
+                                            </div>
+                                            <span class="px-3 py-1 rounded-full text-xs font-black ${m.estado === 'ACTIVO' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700'}">${m.estado || 'ACTIVO'}</span>
+                                        </div>
+                                    </div>
+                                `).join('') : '<p class="text-sm text-slate-500">No hay miembros registrados.</p>'}
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- TABLA DE MESAS -->
                     <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 mb-6 overflow-hidden">

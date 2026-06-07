@@ -6,7 +6,7 @@ Sistema web completo para control de votación electoral - Seccional 40.
 
 | Página | Dirigente | Miembro de Mesa | PC |
 |--------|-----------|-----------------|-----|
-| **index.html** (Votación) | ❌ NO | ✅ SÍ | ❌ NO |
+| **index.html** (Votación) | ❌ NO | ✅ SÍ (habilitado) | ❌ NO |
 | **dirigente.html** (Panel Dirigente) | ✅ SÍ | ❌ NO | ❌ NO |
 | **No_voto.html** (Registro No Voto) | ✅ SÍ | ❌ NO | ✅ SÍ |
 | **mesas.html** (Estado Mesas) | ✅ SÍ | ❌ NO | ✅ SÍ |
@@ -15,7 +15,7 @@ Sistema web completo para control de votación electoral - Seccional 40.
 
 ## 🔑 Contraseñas por Rol
 
-- **Miembro de Mesa:** `Paraguay40` (solo accede a index.html)
+- **Miembro de Mesa:** Cédula + contraseña registrada en hoja `Miembros_mesa` y estado `ACTIVO`
 - **Dirigente:** Cédula + Contraseña (de hoja "Dirigentes")
 - **PC:** `Paraguay40` (accede a No_voto, asistencia, anomalias, mesas)
 
@@ -52,6 +52,7 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 ## 📊 Funcionalidades por Módulo
 
 ### 🗳️ index.html (Votación)
+- Acceso restringido a miembros de mesa habilitados
 - Carga automática del padrón electoral desde Google Sheets
 - Consulta por cédula con nombre del elector
 - Panel de votación con botones dinámicos por mesa
@@ -126,7 +127,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 | **Registros** | Todos los votos marcados | `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen` |
 | **Resumen** | Estadísticas por mesa | `Mesa`, `Votos`, `Ausentes`, `Controversias`, `Total`, `Participacion %` |
 | **Dirigentes** | Lista de dirigentes con contraseña | `Cédula`, `Nombre`, `Contraseña` |
-| **Miembros_mesa** | Miembros de mesa/veedores | `Cédula`, `Nombre`, `Mesa` |
+| **Miembros_mesa** | Miembros de mesa/veedores | `Cédula`, `Nombre`, `Contraseña`, `Mesa`, `Horario de Inicio`, `Horario de Cierre`, `Estado` |
 | **No_voto** | Personas que no votarán | `CEDULA`, `APELLIDO`, `NOMBRE`, `DIRIGENTE`, `No_VOTO` |
 
 ### Endpoints del API
@@ -138,6 +139,9 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 | `?action=no_votos` | Obtener todos los no-votos desde hoja No_voto |
 | `?action=dirigentes` | Obtener lista de dirigentes desde hoja Dirigentes |
 | `?action=miembros_mesa` | Obtener lista de miembros de mesa desde hoja Miembros_mesa |
+| `?action=miembros_mesa_v2` | Obtener lista normalizada de miembros con estado y horarios |
+| `?action=validar_miembro&cedula=...&password=...` | Validar acceso al `index.html` |
+| `?action=registrar_miembro&cedula=...&nombre=...&password=...&mesa=...&estado=ACTIVO` | Alta/actualización de miembro de mesa |
 | `?action=resumen` | Obtener resumen por mesa |
 | `?action=mesa&mesa=N` | Obtener votos de una mesa específica |
 

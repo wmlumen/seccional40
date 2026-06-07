@@ -1,22 +1,22 @@
-/**
+﻿/**
  * Google Apps Script - Backend Seccional 40
- * Recibe datos de votación y los guarda en Google Sheets
+ * Recibe datos de votaciÃ³n y los guarda en Google Sheets
  * 
  * Hojas del sistema:
- * - Padrón: SECC, N°, LOCAL DE VOTACION, MESA, ORDEN, CEDULA, APELLIDO, NOMBRE, FEC. NAC, DIRIGENTE, VOTO
- * - Dirigentes: Cédula, Dirigente, Contraseña
- * - Miembros_mesa: Cédula, Dirigente, Contraseña, MESA, HORARIO DE INICIO, HORARIO DE CIERRE
+ * - PadrÃ³n: SECC, NÂ°, LOCAL DE VOTACION, MESA, ORDEN, CEDULA, APELLIDO, NOMBRE, FEC. NAC, DIRIGENTE, VOTO
+ * - Dirigentes: CÃ©dula, Dirigente, ContraseÃ±a
+ * - Miembros_mesa: CÃ©dula, Dirigente, ContraseÃ±a, MESA, HORARIO DE INICIO, HORARIO DE CIERRE
  * - No_voto: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO
  * - Resumen: Mesa, Votos, Ausentes, Controversias, Total, Participacion %
  * - Registros: timestamp, cedula, nombre, mesa, orden, estado, accion, dirigente, dirigenteNombre, origen
  * 
  * USO:
  * 1. Crear nuevo proyecto en https://script.google.com
- * 2. Copiar este código completo en el editor (archivo .gs)
+ * 2. Copiar este cÃ³digo completo en el editor (archivo .gs)
  * 3. Guardar (Ctrl+S)
- * 4. Implementar > Nueva implementación > Aplicación web
+ * 4. Implementar > Nueva implementaciÃ³n > AplicaciÃ³n web
  * 5. Ejecutar como: Tu cuenta
- * 6. Acceso: Cualquiera, incluso anónimo
+ * 6. Acceso: Cualquiera, incluso anÃ³nimo
  * 7. Copiar la URL y pegarla en los archivos HTML
  */
 
@@ -25,6 +25,58 @@ const SHEET_RESUMEN = 'Resumen';
 const SHEET_NO_VOTO = 'No_voto';
 const SHEET_DIRIGENTES = 'Dirigentes';
 const SHEET_MIEMBROS_MESA = 'Miembros_mesa';
+
+function normalizarTexto(valor) {
+  return String(valor || '').trim();
+}
+
+function normalizarCedula(valor) {
+  return normalizarTexto(valor).replace(/[.\s,-]/g, '');
+}
+
+function normalizarEstadoMiembro(valor) {
+  const estado = normalizarTexto(valor).toUpperCase();
+  return estado || 'ACTIVO';
+}
+
+function ensureMiembrosSheet(ss) {
+  var sheet = ss.getSheetByName(SHEET_MIEMBROS_MESA);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_MIEMBROS_MESA);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['CÃ©dula', 'Nombre', 'ContraseÃ±a', 'Mesa', 'Horario de Inicio', 'Horario de Cierre', 'Estado']);
+    sheet.getRange(1, 1, 1, 7)
+      .setFontWeight('bold')
+      .setBackground('#1e3a8a')
+      .setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function obtenerMiembros(sheet) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+  const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(sheet.getLastColumn(), 7)).getValues();
+  return allData
+    .map(function(row, index) {
+      return {
+        rowNumber: index + 2,
+        cedula: normalizarCedula(row[0]),
+        nombre: normalizarTexto(row[1]),
+        contraseÃ±a: normalizarTexto(row[2]),
+        mesa: normalizarTexto(row[3]),
+        horarioInicio: normalizarTexto(row[4]),
+        horarioCierre: normalizarTexto(row[5]),
+        estado: normalizarEstadoMiembro(row[6])
+      };
+    })
+    .filter(function(miembro) {
+      return miembro.cedula && miembro.nombre;
+    });
+}
 
 /**
  * Maneja solicitudes POST (registrar voto/consulta/no_voto)
@@ -253,30 +305,83 @@ function doGet(e) {
         .map(row => ({
           cedula: String(row[0] || '').replace(/\./g, '').trim(),
           nombre: String(row[1] || '').trim(),
-          contraseña: String(row[2] || '').trim()
+          contraseÃ±a: String(row[2] || '').trim()
         }))
         .filter(d => d.cedula && d.nombre);
       return jsonResponse({ dirigentes: dirigentes, total: dirigentes.length });
     }
+
+    if (action === 'miembros_mesa_v2') {
+      const sheet = ensureMiembrosSheet(ss);
+      const miembros = obtenerMiembros(sheet);
+      return jsonResponse({ miembros: miembros, total: miembros.length });
+    }
+
+    if (action === 'validar_miembro') {
+      const cedula = normalizarCedula(e.parameter.cedula);
+      const password = normalizarTexto(e.parameter.password);
+      const sheet = ensureMiembrosSheet(ss);
+      const miembros = obtenerMiembros(sheet);
+      const miembro = miembros.find(m => m.cedula === cedula && m.contraseÃ±a === password);
+
+      if (!miembro) {
+        return jsonResponse({ success: false, error: 'Credenciales invÃ¡lidas' });
+      }
+
+      if (miembro.estado !== 'ACTIVO') {
+        return jsonResponse({ success: false, error: 'Miembro no habilitado', estado: miembro.estado });
+      }
+
+      return jsonResponse({
+        success: true,
+        miembro: {
+          cedula: miembro.cedula,
+          nombre: miembro.nombre,
+          mesa: miembro.mesa,
+          horarioInicio: miembro.horarioInicio,
+          horarioCierre: miembro.horarioCierre,
+          estado: miembro.estado
+        }
+      });
+    }
+
+    if (action === 'registrar_miembro') {
+      const cedula = normalizarCedula(e.parameter.cedula);
+      const nombre = normalizarTexto(e.parameter.nombre);
+      const password = normalizarTexto(e.parameter.password);
+      const mesa = normalizarTexto(e.parameter.mesa);
+      const horarioInicio = normalizarTexto(e.parameter.horarioInicio);
+      const horarioCierre = normalizarTexto(e.parameter.horarioCierre);
+      const estado = normalizarEstadoMiembro(e.parameter.estado);
+
+      if (!cedula || !nombre || !password) {
+        return jsonResponse({ success: false, error: 'CÃ©dula, nombre y contraseÃ±a son obligatorios' });
+      }
+
+      const sheet = ensureMiembrosSheet(ss);
+      const miembros = obtenerMiembros(sheet);
+      const existente = miembros.find(m => m.cedula === cedula);
+      const row = [[cedula, nombre, password, mesa, horarioInicio, horarioCierre, estado]];
+
+      if (existente) {
+        sheet.getRange(existente.rowNumber, 1, 1, 7).setValues(row);
+        return jsonResponse({ success: true, accion: 'actualizado', row: existente.rowNumber });
+      }
+
+      sheet.appendRow(row[0]);
+      return jsonResponse({ success: true, accion: 'creado', row: sheet.getLastRow() });
+    }
     
     if (action === 'miembros_mesa') {
-      const sheet = ss.getSheetByName(SHEET_MIEMBROS_MESA);
+      const sheet = ensureMiembrosSheet(ss);
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ miembros: [], total: 0 });
       }
-      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-      const miembros = allData
-        .map(row => ({
-          cedula: String(row[0] || '').replace(/\./g, '').trim(),
-          nombre: String(row[1] || '').trim(),
-          contraseña: String(row[2] || '').trim(),
-          mesa: String(row[3] || '').trim()
-        }))
-        .filter(m => m.cedula && m.nombre);
+      const miembros = obtenerMiembros(sheet);
       return jsonResponse({ miembros: miembros, total: miembros.length });
     }
     
-    // NUEVO: Endpoint para registrar voto/no_voto via GET (más confiable en GAS)
+    // NUEVO: Endpoint para registrar voto/no_voto via GET (mÃ¡s confiable en GAS)
     if (action === 'registrar') {
       var data = e.parameter;
       Logger.log('Registrar via GET: ' + JSON.stringify(data));
@@ -335,7 +440,7 @@ function doGet(e) {
 }
 
 /**
- * Actualiza la hoja de Resumen con estadísticas por mesa
+ * Actualiza la hoja de Resumen con estadÃ­sticas por mesa
  */
 function actualizarResumen(ss) {
   let sheet = ss.getSheetByName(SHEET_RESUMEN);
@@ -381,7 +486,7 @@ function actualizarResumen(ss) {
 }
 
 /**
- * Se ejecuta automáticamente al abrir la hoja
+ * Se ejecuta automÃ¡ticamente al abrir la hoja
  * Actualiza el resumen sin necesidad de trigger manual
  */
 function onOpen() {
@@ -397,3 +502,4 @@ function jsonResponse(obj) {
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
