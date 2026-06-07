@@ -122,10 +122,16 @@
             try {
                 const response = await fetch(DIRIGENTES_CSV_URL);
                 const csvText = await response.text();
+                console.log('CSV Dirigentes:', csvText.substring(0, 500)); // DEBUG
+                
                 const lineas = csvText.split('\n').filter(l => l.trim());
+                console.log('Lineas:', lineas.length); // DEBUG
+                console.log('Primera linea:', lineas[0]); // DEBUG
+                
                 const dirs = [];
                 for (let i = 1; i < lineas.length; i++) {
                     const partes = lineas[i].split(',');
+                    console.log('Linea', i, ':', partes); // DEBUG
                     if (partes.length >= 3) {
                         dirs.push({
                             cedula: partes[0].replace(/\./g, '').trim(),
@@ -135,12 +141,13 @@
                     }
                 }
                 state.dirigentes = dirs;
+                console.log('Dirigentes cargados:', dirs); // DEBUG
                 state.cargando = false;
-                state.mensaje = 'Ingrese sus credenciales';
+                state.mensaje = `Ingrese sus credenciales (${dirs.length} dirigentes cargados)`;
             } catch (error) {
                 console.error('Error:', error);
                 state.cargando = false;
-                state.mensaje = 'Error cargando dirigentes';
+                state.mensaje = 'Error cargando dirigentes: ' + error.message;
             }
             render();
         }
@@ -311,6 +318,20 @@
                                 INGRESAR
                             </button>
                         </div>
+                        
+                        ${state.dirigentes.length > 0 ? `
+                            <div class="mt-4 bg-green-50 border-2 border-green-200 rounded-xl p-3">
+                                <p class="text-xs text-green-700 font-bold">✅ ${state.dirigentes.length} dirigentes cargados</p>
+                            </div>
+                        ` : state.mensaje.includes('Error') ? `
+                            <div class="mt-4 bg-red-50 border-2 border-red-200 rounded-xl p-3">
+                                <p class="text-xs text-red-700 font-bold">❌ ${state.mensaje}</p>
+                            </div>
+                        ` : `
+                            <div class="mt-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3">
+                                <p class="text-xs text-yellow-700 font-bold">⏳ ${state.mensaje}</p>
+                            </div>
+                        `}
                         
                         <p class="text-xs text-slate-400 mt-6">Sistema Privado - Uso Autorizado</p>
                     </div>
