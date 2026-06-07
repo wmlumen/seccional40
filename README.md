@@ -2,7 +2,24 @@
 
 Sistema web completo para control de votación electoral - Seccional 40.
 
-## 🏛️ Estructura del Proyecto
+## 🏛️ Matriz de Acceso por Roles
+
+| Página | Dirigente | Miembro de Mesa | PC |
+|--------|-----------|-----------------|-----|
+| **index.html** (Votación) | ❌ NO | ✅ SÍ | ❌ NO |
+| **dirigente.html** (Panel Dirigente) | ✅ SÍ | ❌ NO | ❌ NO |
+| **No_voto.html** (Registro No Voto) | ✅ SÍ | ❌ NO | ✅ SÍ |
+| **mesas.html** (Estado Mesas) | ✅ SÍ | ❌ NO | ✅ SÍ |
+| **asistencia.html** (Seguimiento) | ❌ NO | ❌ NO | ✅ SÍ |
+| **anomalias.html** (Monitoreo) | ❌ NO | ❌ NO | ✅ SÍ |
+
+## 🔑 Contraseñas por Rol
+
+- **Miembro de Mesa:** `Paraguay40` (solo accede a index.html)
+- **Dirigente:** Cédula + Contraseña (de hoja "Dirigentes")
+- **PC:** `Paraguay40` (accede a No_voto, asistencia, anomalias, mesas)
+
+## 🔗 Enlaces del Proyecto
 
 ### Colegio Electoral (Operativos)
 
@@ -61,9 +78,9 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 ### 🚫 No_voto.html (No Voto)
 - Registro de personas que no votarán
 - Búsqueda por cédula con autocompletado
-- Motivos: Enfermedad, Viaje, Fallecido, Trabajo, Desinterés, Otro
+- Campo: Dirigente, Motivo (Enfermedad, Viaje, Fallecido, Trabajo, Desinterés, Otro)
 - Observación opcional
-- Envía a hoja "No_votos" en Google Sheets
+- **Guarda en hoja "No_voto"** con columnas: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO
 
 ### 📊 asistencia.html (Seguimiento del Dirigente - PC)
 - Reporte por Mesa y por Dirigente
@@ -109,18 +126,20 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 | **Registros** | Todos los votos marcados | `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen` |
 | **Resumen** | Estadísticas por mesa | `Mesa`, `Votos`, `Ausentes`, `Controversias`, `Total`, `Participacion %` |
 | **Dirigentes** | Lista de dirigentes con contraseña | `Cédula`, `Nombre`, `Contraseña` |
-| **No_votos** | Personas que no votarán | `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `motivo`, `observacion`, `origen` |
+| **Miembros_mesa** | Miembros de mesa/veedores | `Cédula`, `Nombre`, `Mesa` |
+| **No_voto** | Personas que no votarán | `CEDULA`, `APELLIDO`, `NOMBRE`, `DIRIGENTE`, `No_VOTO` |
 
 ### Endpoints del API
 
 | Endpoint | Descripción |
 |----------|-------------|
+| `POST` | Registrar voto (va a Registros) o no-voto (va a No_voto) |
 | `?action=votos` | Obtener todos los votos |
-| `?action=no_votos` | Obtener todos los no-votos |
-| `?action=dirigentes` | Obtener lista de dirigentes desde la hoja |
+| `?action=no_votos` | Obtener todos los no-votos desde hoja No_voto |
+| `?action=dirigentes` | Obtener lista de dirigentes desde hoja Dirigentes |
+| `?action=miembros_mesa` | Obtener lista de miembros de mesa desde hoja Miembros_mesa |
 | `?action=resumen` | Obtener resumen por mesa |
 | `?action=mesa&mesa=N` | Obtener votos de una mesa específica |
-| `POST` | Registrar voto o no-voto |
 
 ## 🚀 Tecnologías
 
@@ -136,8 +155,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 ┌─────────────────────────────────────────┐
 │         Google Sheets (Excel)           │
 │  ┌──────────┐ ┌──────────┐ ┌────────┐ │
-│  │ Registros│ │Dirigentes│ │No_votos│ │
+│  │ Registros│ │Dirigentes│ │No_voto │ │
 │  └──────────┘ └──────────┘ └────────┘ │
+│  ┌──────────┐ ┌──────────┐             │
+│  │ Miembros │ │  Resumen │             │
+│  │  _mesa   │ │          │             │
+│  └──────────┘ └──────────┘             │
 └─────────────────────────────────────────┘
                     │
                     │ API (Google Apps Script)
@@ -147,6 +170,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 ┌───▼───┐     ┌────▼────┐    ┌────▼───┐
 │ index │     │dirigente│    │No_voto │
 │ .html │     │ .html   │    │ .html  │
+│(Miembro│     │(Dirigen)│    │(Dir/PC)│
 └───┬───┘     └────┬────┘    └───┬────┘
     │              │             │
     │              │             │

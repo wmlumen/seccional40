@@ -119,21 +119,25 @@
             
             const motivoSelect = document.getElementById('motivoSelect');
             const observacionInput = document.getElementById('observacionInput');
+            const dirigenteInput = document.getElementById('dirigenteInput');
             
             const motivo = motivoSelect ? motivoSelect.value : 'Otro';
             const observacion = observacionInput ? observacionInput.value.trim() : '';
+            const dirigente = dirigenteInput ? dirigenteInput.value.trim() : 'Sin dirigente';
+            
+            // Extraer apellido y nombre del nombre completo
+            const nombreCompleto = state.consultaResultado.nombre || '';
+            const partesNombre = nombreCompleto.split(' ');
+            const apellido = partesNombre.length > 1 ? partesNombre[0] : '';
+            const nombre = partesNombre.length > 1 ? partesNombre.slice(1).join(' ') : nombreCompleto;
             
             const data = {
-                timestamp: new Date().toISOString(),
-                cedula: state.consultaResultado.cedula,
-                nombre: state.consultaResultado.nombre,
-                mesa: state.consultaResultado.mesa,
-                orden: state.consultaResultado.orden,
                 estado: 'no_voto',
-                accion: 'registrar',
-                motivo: motivo,
-                observacion: observacion,
-                origen: 'no_voto'
+                cedula: state.consultaResultado.cedula,
+                apellido: apellido,
+                nombre: nombre,
+                dirigente: dirigente,
+                motivo: motivo
             };
             
             // Enviar a Google Sheets
@@ -151,7 +155,7 @@
             }
             
             // Mostrar confirmación
-            state.mensaje = `✅ Registrado: ${data.nombre} - Motivo: ${motivo}`;
+            state.mensaje = `✅ Registrado: ${nombreCompleto} - Motivo: ${motivo}`;
             state.consultaResultado = null;
             
             // Limpiar inputs
@@ -283,6 +287,12 @@
                     </div>
                     
                     <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Dirigente</label>
+                            <input type="text" id="dirigenteInput" placeholder="Nombre del dirigente"
+                                class="w-full px-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all">
+                        </div>
+                        
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Motivo</label>
                             <select id="motivoSelect" class="w-full px-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all bg-white">
