@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SECCIONAL 40 - Mesas Electorales</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -400,29 +401,140 @@
                         </div>
                     </div>
 
-                    <!-- GRÁFICO DE MESAS -->
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        ${mesasArray.map(m => {
-                            const porcentaje = parseFloat(m.participacion) || 0;
-                            return `
-                                <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-100 text-center animate-in">
-                                    <div class="w-12 h-12 rounded-full ${porcentaje >= 80 ? 'bg-green-500' : porcentaje >= 50 ? 'bg-yellow-500' : porcentaje >= 30 ? 'bg-orange-500' : 'bg-red-500'} text-white flex items-center justify-center mx-auto mb-3 font-black text-lg">
-                                        ${m.mesa}
-                                    </div>
-                                    <div class="text-2xl font-black text-slate-900 mb-1">${m.totalElectores}</div>
-                                    <div class="text-xs font-bold text-slate-500 uppercase mb-2">Electores</div>
-                                    <div class="w-full h-2 bg-red-100 rounded-full overflow-hidden mb-2">
-                                        <div class="h-full rounded-full ${porcentaje >= 80 ? 'bg-green-500' : porcentaje >= 50 ? 'bg-yellow-500' : porcentaje >= 30 ? 'bg-orange-500' : 'bg-red-500'}" style="width: ${Math.min(porcentaje, 100)}%"></div>
-                                    </div>
-                                    <div class="text-xs font-bold ${porcentaje >= 80 ? 'text-green-600' : porcentaje >= 50 ? 'text-yellow-600' : porcentaje >= 30 ? 'text-orange-600' : 'text-red-600'}">
-                                        ${porcentaje}% - ${m.votos || 0} votos
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
+                    <!-- GRÁFICO DE BARRAS + LÍNEA -->
+                    <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 p-4 md:p-6 mb-6">
+                        <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">
+                            <i class="fas fa-chart-bar text-red-600 mr-2"></i>Electores y Votos por Mesa
+                        </h2>
+                        <div class="relative" style="height: 400px;">
+                            <canvas id="chartMesas"></canvas>
+                        </div>
                     </div>
                 </main>
             `;
+            
+            // Inicializar gráfico después de renderizar
+            initChart();
+        }
+
+        function initChart() {
+            const canvas = document.getElementById('chartMesas');
+            if (!canvas) return;
+            
+            // Destruir gráfico anterior si existe
+            if (window._chartInstance) {
+                window._chartInstance.destroy();
+            }
+            
+            const mesasArray = Object.values(state.mesas).sort((a, b) => a.mesa - b.mesa);
+            const labels = mesasArray.map(m => 'M' + m.mesa);
+            const electoresData = mesasArray.map(m => m.totalElectores);
+            const votosData = mesasArray.map(m => m.votos || 0);
+            const participacionData = mesasArray.map(m => parseFloat(m.participacion) || 0);
+            
+            window._chartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Electores',
+                            data: electoresData,
+                            backgroundColor: 'rgba(220, 38, 38, 0.15)',
+                            borderColor: 'rgba(220, 38, 38, 0.6)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            yAxisID: 'yElectores'
+                        },
+                        {
+                            label: 'Votos',
+                            data: votosData,
+                            backgroundColor: 'rgba(220, 38, 38, 0.6)',
+                            borderColor: 'rgba(220, 38, 38, 0.9)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            yAxisID: 'yElectores'
+                        },
+                        {
+                            label: 'Participación %',
+                            data: participacionData,
+                            type: 'line',
+                            borderColor: '#ea580c',
+                            backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                            pointBackgroundColor: '#ea580c',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            tension: 0.3,
+                            fill: true,
+                            yAxisID: 'yPorcentaje'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { weight: 'bold', size: 11 },
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleFont: { weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 12,
+                            cornerRadius: 12
+                        }
+                    },
+                    scales: {
+                        yElectores: {
+                            position: 'left',
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.05)' },
+                            ticks: {
+                                font: { weight: 'bold', size: 10 },
+                                stepSize: 50
+                            },
+                            title: {
+                                display: true,
+                                text: 'Electores / Votos',
+                                font: { weight: 'bold', size: 11 }
+                            }
+                        },
+                        yPorcentaje: {
+                            position: 'right',
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { display: false },
+                            ticks: {
+                                font: { weight: 'bold', size: 10 },
+                                callback: function(value) { return value + '%'; }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Participación %',
+                                font: { weight: 'bold', size: 11 }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: { weight: 'bold', size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Actualizar cada 30 segundos
