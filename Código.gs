@@ -2,6 +2,14 @@
  * Google Apps Script - Backend Seccional 40
  * Recibe datos de votación y los guarda en Google Sheets
  * 
+ * Hojas del sistema:
+ * - Padrón: SECC, N°, LOCAL DE VOTACION, MESA, ORDEN, CEDULA, APELLIDO, NOMBRE, FEC. NAC, DIRIGENTE, VOTO
+ * - Dirigentes: Cédula, Dirigente, Contraseña
+ * - Miembros_mesa: Cédula, Dirigente, Contraseña, MESA, HORARIO DE INICIO, HORARIO DE CIERRE
+ * - No_voto: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO
+ * - Resumen: Mesa, Votos, Ausentes, Controversias, Total, Participacion %
+ * - Registros: timestamp, cedula, nombre, mesa, orden, estado, accion, dirigente, dirigenteNombre, origen
+ * 
  * USO:
  * 1. Crear nuevo proyecto en https://script.google.com
  * 2. Copiar este código completo en el editor (archivo .gs)
@@ -9,15 +17,17 @@
  * 4. Implementar > Nueva implementación > Aplicación web
  * 5. Ejecutar como: Tu cuenta
  * 6. Acceso: Cualquiera, incluso anónimo
- * 7. Copiar la URL y pegarla en index.html (variable API_URL)
+ * 7. Copiar la URL y pegarla en los archivos HTML
  */
 
-const SHEET_NAME = 'Registros';
+const SHEET_REGISTROS = 'Registros';
 const SHEET_RESUMEN = 'Resumen';
 const SHEET_NO_VOTO = 'No_voto';
+const SHEET_DIRIGENTES = 'Dirigentes';
+const SHEET_MIEMBROS_MESA = 'Miembros_mesa';
 
 /**
- * Maneja solicitudes POST (registrar voto/consulta)
+ * Maneja solicitudes POST (registrar voto/consulta/no_voto)
  */
 function doPost(e) {
   try {
@@ -32,7 +42,7 @@ function doPost(e) {
     const esNoVoto = data.estado === 'no_voto';
     
     if (esNoVoto) {
-      // Escribir en la hoja No_voto existente (CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO)
+      // Escribir en la hoja No_voto (columnas: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO)
       let sheet = ss.getSheetByName(SHEET_NO_VOTO);
       if (!sheet) {
         return jsonResponse({ success: false, error: 'Hoja No_voto no encontrada' });
@@ -50,10 +60,10 @@ function doPost(e) {
       
       return jsonResponse({ success: true, row: sheet.getLastRow(), tipo: 'no_voto' });
     } else {
-      // Escribir en la hoja Registros
-      let sheet = ss.getSheetByName(SHEET_NAME);
+      // Escribir en la hoja Registros (timestamp, cedula, nombre, mesa, orden, estado, accion, dirigente, dirigenteNombre, origen)
+      let sheet = ss.getSheetByName(SHEET_REGISTROS);
       if (!sheet) {
-        sheet = ss.insertSheet(SHEET_NAME);
+        sheet = ss.insertSheet(SHEET_REGISTROS);
         sheet.appendRow([
           'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'dirigenteNombre', 'origen'
         ]);
@@ -123,7 +133,7 @@ function doGet(e) {
     
     if (action === 'mesa') {
       const mesaNum = parseInt(e.parameter.mesa) || 0;
-      const sheet = ss.getSheetByName(SHEET_NAME);
+      const sheet = ss.getSheetByName(SHEET_REGISTROS);
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ mesa: mesaNum, registros: [] });
       }
@@ -145,7 +155,7 @@ function doGet(e) {
     }
     
     if (action === 'votos') {
-      const sheet = ss.getSheetByName(SHEET_NAME);
+      const sheet = ss.getSheetByName(SHEET_REGISTROS);
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ registros: [], total: 0 });
       }
@@ -162,7 +172,7 @@ function doGet(e) {
           dirigente: row[7],
           dirigenteNombre: row[8]
         }))
-        .reverse(); // Más recientes primero
+        .reverse();
       return jsonResponse({ registros: registros, total: registros.length });
     }
     
@@ -186,7 +196,7 @@ function doGet(e) {
     }
     
     if (action === 'dirigentes') {
-      const sheet = ss.getSheetByName('Dirigentes');
+      const sheet = ss.getSheetByName(SHEET_DIRIGENTES);
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ dirigentes: [], total: 0 });
       }
@@ -202,7 +212,7 @@ function doGet(e) {
     }
     
     if (action === 'miembros_mesa') {
-      const sheet = ss.getSheetByName('Miembros_mesa');
+      const sheet = ss.getSheetByName(SHEET_MIEMBROS_MESA);
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ miembros: [], total: 0 });
       }
@@ -211,7 +221,8 @@ function doGet(e) {
         .map(row => ({
           cedula: String(row[0] || '').replace(/\./g, '').trim(),
           nombre: String(row[1] || '').trim(),
-          mesa: String(row[2] || '').trim()
+          contraseña: String(row[2] || '').trim(),
+          mesa: String(row[3] || '').trim()
         }))
         .filter(m => m.cedula && m.nombre);
       return jsonResponse({ miembros: miembros, total: miembros.length });
@@ -225,7 +236,7 @@ function doGet(e) {
 }
 
 /**
- * Actualiza la hoja de resumen con estadísticas por mesa
+ * Actualiza la hoja de Resumen con estadísticas por mesa
  */
 function actualizarResumen(ss) {
   let sheet = ss.getSheetByName(SHEET_RESUMEN);
@@ -239,7 +250,7 @@ function actualizarResumen(ss) {
     sheet.setFrozenRows(1);
   }
   
-  const dataSheet = ss.getSheetByName(SHEET_NAME);
+  const dataSheet = ss.getSheetByName(SHEET_REGISTROS);
   if (!dataSheet || dataSheet.getLastRow() < 2) return;
   
   const data = dataSheet.getRange(2, 1, dataSheet.getLastRow() - 1, 9).getValues();
