@@ -10,6 +10,7 @@ Sistema web para control de votación electoral - Seccional 40.
 | 📊 **Panel de Reporte** | [https://wmlumen.github.io/seccional40/asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) |
 | 🚫 **No Votos** | [https://wmlumen.github.io/seccional40/No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) |
 | 🚨 **Monitoreo de Anomalías** | [https://wmlumen.github.io/seccional40/anomalias.html](https://wmlumen.github.io/seccional40/anomalias.html) |
+| 👤 **Panel del Dirigente** | [https://wmlumen.github.io/seccional40/dirigente.html](https://wmlumen.github.io/seccional40/dirigente.html) |
 
 ## 📝 Acceso
 
@@ -30,6 +31,12 @@ Sistema web para control de votación electoral - Seccional 40.
   - Alerta por votos muy rápidos (< 35% de la media) o muy lentos (> 300% de la media)
   - Alarma cuando hay 3+ votos rápidos consecutivos
   - Actualización en tiempo real cada 5 segundos
+- **Panel del Dirigente** (dirigente.html): Cada dirigente tiene acceso privado con su cédula y contraseña
+  - Ve solo los votantes que él registró (comprometidos)
+  - Separados por estado: Ya Votaron, Ausentes, No Votarán, Controversias
+  - Puede registrar comunicaciones con notas (qué dijo el votante)
+  - Puede registrar No Votos directamente desde su panel
+  - Actualiza cada 10 segundos
 - Código QR para transferencia de posta
 - Registro automático a Google Sheets
 
@@ -62,7 +69,8 @@ Los votos se guardan directamente en **Google Sheets** en tiempo real:
 - Hoja **"Registros"**: Todos los votos marcados
   - Columnas: `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen`
 - Hoja **"Resumen"**: Estadísticas por mesa
-- Hoja **"dirigentes"**: Lista de dirigentes (cédula, nombre)
+- Hoja **"dirigentes"**: Lista de dirigentes (cédula, nombre, contraseña)
+  - Usada para el panel privado `dirigente.html`
 - Hoja **"No_votos"**: Personas que registraron que no votarán
   - Columnas: `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `motivo`, `observacion`, `origen`
 

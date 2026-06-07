@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECCIONAL 40 - Panel del Dirigente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .scroll-hidden::-webkit-scrollbar { width: 6px; }
+        .scroll-hidden::-webkit-scrollbar-track { background: #fef2f2; }
+        .scroll-hidden::-webkit-scrollbar-thumb { background: #fecaca; border-radius: 3px; }
+        .scroll-hidden::-webkit-scrollbar-thumb:hover { background: #dc2626; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
+    <div id="app"></div>
+
+    <script>
+        const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
+        const DIRIGENTES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?gid=79263661&single=true&output=csv';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
+        
+        let state = {
+            autenticado: false,
+            cargando: false,
+            dirigente: null, // { cedula, nombre, contraseña }
+            padron: [],
+            dirigentes: [],
+            votos: [],
+            noVotos: [],
+            comunicaciones: [], // local durante la sesión
+            ultimaActualizacion: null,
+            mensaje: '',
+            tabActiva: 'pendientes'
+        };
+
+        function login() {
+            const cedulaInput = document.getElementById('cedulaInput');
+            const passInput = document.getElementById('passInput');
+            const cedula = cedulaInput ? cedulaInput.value.trim() : '';
+            const password = passInput ? passInput.value.trim() : '';
+            
+            if (!cedula || !password) {
+                alert('Ingrese cédula y contraseña.');
+                return;
+            }
+            
+            const dirigente = state.dirigentes.find(d => d.cedula === cedula && d.contraseña === password);
+            
+            if (dirigente) {
+                state.dirigente = dirigente;
+                state.autenticado = true;
+                cargarDatos();
+            } else {
+                alert('Cédula o contraseña incorrecta. Si no tiene acceso, contacte al administrador.');
+            }
+        }
+
+        async function cargarDatos() {
+            state.cargando = true;
+            state.mensaje = 'Cargando datos...';
+            render();
+            
+            try {
+                // Cargar padron, votos y no_votos en paralelo
+                const [padronResp, votosResp, noVotosResp] = await Promise.all([
+                    fetch(PADRON_CSV_URL),
+                    fetch(API_URL + '?action=votos'),
+                    fetch(API_URL + '?action=no_votos')
+                ]);
+                
+                const padronText = await padronResp.text();
+                const padronLineas = padronText.split('\n').filter(l => l.trim());
+                const padronData = [];
+                for (let i = 1; i < padronLineas.length; i++) {
+                    const partes = padronLineas[i].split(',');
+                    if (partes.length >= 8) {
+                        padronData.push({
+                            cedula: partes[5].replace(/\./g, '').trim(),
+                            nombre: (partes[6].trim() + ' ' + partes[7].trim()).trim(),
+                            mesa: parseInt(partes[3].trim()) || 0,
+                            orden: parseInt(partes[4].trim()) || 0
+                        });
+                    }
+                }
+                state.padron = padronData;
+                
+                const votosData = await votosResp.json();
+                if (votosData && votosData.registros) {
+                    // Filtrar solo los registros de este dirigente
+                    state.votos = votosData.registros.filter(v => 
+                        v.dirigente === state.dirigente.cedula || 
+                        v.dirigenteNombre === state.dirigente.nombre
+                    );
+                }
+                
+                const noVotosData = await noVotosResp.json();
+                if (noVotosData && noVotosData.registros) {
+                    state.noVotos = noVotosData.registros;
+                }
+                
+                state.ultimaActualizacion = new Date();
+                state.cargando = false;
+                state.mensaje = `Datos cargados: ${state.votos.length} registros, ${state.noVotos.length} no-votos`;
+            } catch (error) {
+                console.error('Error:', error);
+                state.cargando = false;
+                state.mensaje = 'Error cargando datos';
+            }
+            render();
+        }
+
+        async function cargarDirigentes() {
+            state.cargando = true;
+            state.mensaje = 'Cargando dirigentes...';
+            render();
+            try {
+                const response = await fetch(DIRIGENTES_CSV_URL);
+                const csvText = await response.text();
+                const lineas = csvText.split('\n').filter(l => l.trim());
+                const dirs = [];
+                for (let i = 1; i < lineas.length; i++) {
+                    const partes = lineas[i].split(',');
+                    if (partes.length >= 3) {
+                        dirs.push({
+                            cedula: partes[0].replace(/\./g, '').trim(),
+                            nombre: partes[1].trim(),
+                            contraseña: partes[2].trim()
+                        });
+                    }
+                }
+                state.dirigentes = dirs;
+                state.cargando = false;
+                state.mensaje = 'Ingrese sus credenciales';
+            } catch (error) {
+                console.error('Error:', error);
+                state.cargando = false;
+                state.mensaje = 'Error cargando dirigentes';
+            }
+            render();
+        }
+
+        // ============ REGISTRAR COMUNICACIÓN ============
+        function registrarComunicacion() {
+            const cedulaInput = document.getElementById('cedulaComunicacion');
+            const notaInput = document.getElementById('notaComunicacion');
+            const cedula = cedulaInput ? cedulaInput.value.trim() : '';
+            const nota = notaInput ? notaInput.value.trim() : '';
+            
+            if (!cedula) {
+                alert('Ingrese una cédula.');
+                return;
+            }
+            
+            const elector = state.padron.find(p => p.cedula === cedula);
+            const nombre = elector ? elector.nombre : 'Desconocido';
+            
+            state.comunicaciones.push({
+                cedula: cedula,
+                nombre: nombre,
+                nota: nota,
+                timestamp: new Date().toISOString(),
+                dirigente: state.dirigente.nombre
+            });
+            
+            state.mensaje = `✅ Comunicación registrada: ${nombre}`;
+            if (cedulaInput) cedulaInput.value = '';
+            if (notaInput) notaInput.value = '';
+            render();
+        }
+
+        // ============ REGISTRAR NO VOTO ============
+        async function registrarNoVotoDirigente() {
+            const cedulaInput = document.getElementById('cedulaNoVoto');
+            const motivoInput = document.getElementById('motivoNoVoto');
+            const observacionInput = document.getElementById('observacionNoVoto');
+            
+            const cedula = cedulaInput ? cedulaInput.value.trim() : '';
+            const motivo = motivoInput ? motivoInput.value : 'Otro';
+            const observacion = observacionInput ? observacionInput.value.trim() : '';
+            
+            if (!cedula) {
+                alert('Ingrese una cédula.');
+                return;
+            }
+            
+            const elector = state.padron.find(p => p.cedula === cedula);
+            if (!elector) {
+                alert('Cédula no encontrada en el padrón.');
+                return;
+            }
+            
+            const data = {
+                timestamp: new Date().toISOString(),
+                cedula: cedula,
+                nombre: elector.nombre,
+                mesa: elector.mesa,
+                orden: elector.orden,
+                estado: 'no_voto',
+                accion: 'registrar',
+                motivo: motivo,
+                observacion: observacion,
+                origen: 'dirigente_' + state.dirigente.cedula
+            };
+            
+            try {
+                await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                state.mensaje = `✅ No voto registrado: ${elector.nombre}`;
+                state.noVotos.push({ ...data, timestamp: new Date().getTime() });
+                
+                if (cedulaInput) cedulaInput.value = '';
+                if (observacionInput) observacionInput.value = '';
+                
+                render();
+            } catch (e) {
+                console.error('Error:', e);
+                alert('Error enviando datos. Intente nuevamente.');
+            }
+        }
+
+        // ============ BUSCAR ELECTOR EN EL PADRON ============
+        function buscarElectorPadron(inputId, resultadoId) {
+            const input = document.getElementById(inputId);
+            const resultadoDiv = document.getElementById(resultadoId);
+            const cedula = input ? input.value.trim() : '';
+            
+            if (!cedula || !resultadoDiv) return;
+            
+            const elector = state.padron.find(p => p.cedula === cedula);
+            if (elector) {
+                resultadoDiv.innerHTML = `
+                    <div class="bg-green-50 border-2 border-green-200 rounded-xl p-3 mt-2">
+                        <p class="font-bold text-green-800">${elector.nombre}</p>
+                        <p class="text-xs text-green-600">Mesa: ${elector.mesa} | Orden: ${elector.orden}</p>
+                    </div>
+                `;
+            } else {
+                resultadoDiv.innerHTML = `
+                    <div class="bg-red-50 border-2 border-red-200 rounded-xl p-3 mt-2">
+                        <p class="font-bold text-red-800">Cédula no encontrada en el padrón</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ============ ANALISIS DE DATOS ============
+        function getStats() {
+            const votosDelDirigente = state.votos;
+            const votosUnicos = {};
+            
+            votosDelDirigente.forEach(v => {
+                const cedula = v.cedula;
+                if (!votosUnicos[cedula] || v.timestamp > votosUnicos[cedula].timestamp) {
+                    votosUnicos[cedula] = v;
+                }
+            });
+            
+            const yaVotaron = [];
+            const ausentes = [];
+            const controversias = [];
+            
+            Object.values(votosUnicos).forEach(v => {
+                if (v.estado === 'voto') yaVotaron.push(v);
+                else if (v.estado === 'ausente') ausentes.push(v);
+                else if (v.estado === 'controversia') controversias.push(v);
+            });
+            
+            // No-votos de este dirigente
+            const noVotosDelDirigente = state.noVotos.filter(nv => 
+                nv.origen && nv.origen.includes('dirigente_' + state.dirigente.cedula)
+            );
+            
+            return { yaVotaron, ausentes, controversias, noVotos: noVotosDelDirigente };
+        }
+
+        function renderLogin() {
+            return `
+                <div class="min-h-screen flex items-center justify-center p-4">
+                    <div class="bg-white rounded-[2rem] p-8 md:p-12 shadow-2xl border border-slate-100 max-w-md w-full text-center">
+                        <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-user-tie text-white text-3xl"></i>
+                        </div>
+                        <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">DIRIGENTE</h1>
+                        <p class="text-slate-500 text-sm mb-8">Panel Privado de Control</p>
+                        
+                        <div class="space-y-4">
+                            <div class="relative">
+                                <i class="fas fa-id-card absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="cedulaInput" placeholder="Cédula del Dirigente" 
+                                    class="w-full pl-12 pr-4 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all"
+                                    onkeypress="if(event.key === 'Enter') login()">
+                            </div>
+                            <div class="relative">
+                                <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="password" id="passInput" placeholder="Contraseña" 
+                                    class="w-full pl-12 pr-4 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all"
+                                    onkeypress="if(event.key === 'Enter') login()">
+                            </div>
+                            <button onclick="login()" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl transition-all shadow-lg">
+                                INGRESAR
+                            </button>
+                        </div>
+                        
+                        <p class="text-xs text-slate-400 mt-6">Sistema Privado - Uso Autorizado</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (!state.autenticado) {
+                if (state.dirigentes.length === 0 && !state.cargando) {
+                    cargarDirigentes();
+                    return;
+                }
+                app.innerHTML = renderLogin();
+                return;
+            }
+            
+            const stats = getStats();
+            const totalRegistros = stats.yaVotaron.length + stats.ausentes.length + stats.controversias.length + stats.noVotos.length;
+            const pendientes = stats.ausentes.length; // Simplificación: ausentes = pendientes
+            
+            app.innerHTML = `
+                <header class="bg-red-900 text-white sticky top-0 z-40 shadow-lg">
+                    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-red-500 rounded-xl">
+                                <i class="fas fa-user-tie text-white text-xl"></i>
+                            </div>
+                            <div>
+                                <h1 class="text-xl font-black uppercase tracking-tighter italic leading-none">${state.dirigente.nombre}</h1>
+                                <p class="text-[10px] text-red-200 font-bold uppercase tracking-widest opacity-80">Panel del Dirigente - SECC. 40</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs">
+                            <div class="text-right">
+                                <p class="text-red-200">Última actualización</p>
+                                <p class="font-bold">${state.ultimaActualizacion ? state.ultimaActualizacion.toLocaleTimeString('es-PY') : '-'}</p>
+                            </div>
+                            <button onclick="cargarDatos()" class="px-4 py-2 bg-red-500 hover:bg-red-400 rounded-xl transition-all" title="Recargar">
+                                <i class="fas fa-sync-alt ${state.cargando ? 'fa-spin' : ''}"></i>
+                            </button>
+                            <button onclick="state.autenticado=false; state.dirigente=null; render();" class="px-4 py-2 bg-red-800 hover:bg-red-700 rounded-xl transition-all" title="Salir">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="max-w-7xl mx-auto p-4 md:p-6">
+                    <!-- RESUMEN -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-green-200 text-center">
+                            <div class="text-xs font-bold text-green-600 uppercase mb-1">Ya Votaron</div>
+                            <div class="text-3xl font-black text-green-600">${stats.yaVotaron.length}</div>
+                        </div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-200 text-center">
+                            <div class="text-xs font-bold text-red-600 uppercase mb-1">No Votarán</div>
+                            <div class="text-3xl font-black text-red-600">${stats.noVotos.length}</div>
+                        </div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-yellow-200 text-center">
+                            <div class="text-xs font-bold text-yellow-600 uppercase mb-1">Ausentes</div>
+                            <div class="text-3xl font-black text-yellow-600">${stats.ausentes.length}</div>
+                        </div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-orange-200 text-center">
+                            <div class="text-xs font-bold text-orange-600 uppercase mb-1">Controversias</div>
+                            <div class="text-3xl font-black text-orange-600">${stats.controversias.length}</div>
+                        </div>
+                    </div>
+
+                    <!-- MENSAJE -->
+                    ${state.mensaje ? `
+                        <div class="bg-red-50 border-2 border-red-100 rounded-xl p-4 mb-4">
+                            <p class="font-bold text-red-800 text-center text-sm">${state.mensaje}</p>
+                        </div>
+                    ` : ''}
+
+                    <!-- ACCIONES RÁPIDAS -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <!-- REGISTRAR COMUNICACIÓN -->
+                        <div class="bg-white rounded-[2rem] p-6 shadow-xl border border-red-100">
+                            <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">
+                                <i class="fas fa-phone text-red-600 mr-2"></i>Registrar Comunicación
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="relative">
+                                    <i class="fas fa-id-card absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text" id="cedulaComunicacion" placeholder="Cédula del elector" 
+                                        class="w-full pl-12 pr-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all"
+                                        oninput="buscarElectorPadron('cedulaComunicacion', 'resultadoComunicacion')">
+                                </div>
+                                <div id="resultadoComunicacion"></div>
+                                <textarea id="notaComunicacion" rows="2" placeholder="¿Qué dijo? Ej: Ya votó, No va a ir, Duda, etc."
+                                    class="w-full px-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all resize-none"></textarea>
+                                <button onclick="registrarComunicacion()" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition-all shadow-lg">
+                                    <i class="fas fa-save mr-2"></i>REGISTRAR COMUNICACIÓN
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- REGISTRAR NO VOTO -->
+                        <div class="bg-white rounded-[2rem] p-6 shadow-xl border border-red-100">
+                            <h3 class="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">
+                                <i class="fas fa-user-slash text-red-600 mr-2"></i>Registrar No Voto
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="relative">
+                                    <i class="fas fa-id-card absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text" id="cedulaNoVoto" placeholder="Cédula del elector" 
+                                        class="w-full pl-12 pr-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all"
+                                        oninput="buscarElectorPadron('cedulaNoVoto', 'resultadoNoVoto')">
+                                </div>
+                                <div id="resultadoNoVoto"></div>
+                                <select id="motivoNoVoto" class="w-full px-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all bg-white">
+                                    <option value="Enfermedad">Enfermedad</option>
+                                    <option value="Viaje">Viaje</option>
+                                    <option value="Fallecido">Fallecido</option>
+                                    <option value="Trabajo">Trabajo</option>
+                                    <option value="Desinterés">Desinterés</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                                <textarea id="observacionNoVoto" rows="2" placeholder="Observación (opcional)"
+                                    class="w-full px-4 py-3 text-base font-bold border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none transition-all resize-none"></textarea>
+                                <button onclick="registrarNoVotoDirigente()" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl transition-all shadow-lg">
+                                    <i class="fas fa-user-slash mr-2"></i>REGISTRAR NO VOTO
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABS -->
+                    <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 overflow-hidden mb-6">
+                        <div class="flex border-b border-red-100 overflow-x-auto">
+                            <button onclick="state.tabActiva='votaron'; render();" 
+                                class="flex-1 px-4 py-3 text-sm font-bold ${state.tabActiva === 'votaron' ? 'text-red-600 border-b-2 border-red-600 bg-red-50' : 'text-slate-500 hover:text-red-600'} transition-all whitespace-nowrap">
+                                <i class="fas fa-check-circle mr-1"></i>Ya Votaron (${stats.yaVotaron.length})
+                            </button>
+                            <button onclick="state.tabActiva='ausentes'; render();" 
+                                class="flex-1 px-4 py-3 text-sm font-bold ${state.tabActiva === 'ausentes' ? 'text-yellow-600 border-b-2 border-yellow-600 bg-yellow-50' : 'text-slate-500 hover:text-yellow-600'} transition-all whitespace-nowrap">
+                                <i class="fas fa-clock mr-1"></i>Ausentes (${stats.ausentes.length})
+                            </button>
+                            <button onclick="state.tabActiva='novotos'; render();" 
+                                class="flex-1 px-4 py-3 text-sm font-bold ${state.tabActiva === 'novotos' ? 'text-red-600 border-b-2 border-red-600 bg-red-50' : 'text-slate-500 hover:text-red-600'} transition-all whitespace-nowrap">
+                                <i class="fas fa-user-slash mr-1"></i>No Votarán (${stats.noVotos.length})
+                            </button>
+                            <button onclick="state.tabActiva='controversias'; render();" 
+                                class="flex-1 px-4 py-3 text-sm font-bold ${state.tabActiva === 'controversias' ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50' : 'text-slate-500 hover:text-orange-600'} transition-all whitespace-nowrap">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>Controversias (${stats.controversias.length})
+                            </button>
+                            <button onclick="state.tabActiva='comunicaciones'; render();" 
+                                class="flex-1 px-4 py-3 text-sm font-bold ${state.tabActiva === 'comunicaciones' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-500 hover:text-blue-600'} transition-all whitespace-nowrap">
+                                <i class="fas fa-phone mr-1"></i>Comunicaciones (${state.comunicaciones.length})
+                            </button>
+                        </div>
+
+                        <div class="p-4 md:p-6 max-h-[500px] overflow-y-auto scroll-hidden">
+                            ${state.tabActiva === 'votaron' ? renderTablaVotos(stats.yaVotaron, 'green') : ''}
+                            ${state.tabActiva === 'ausentes' ? renderTablaVotos(stats.ausentes, 'yellow') : ''}
+                            ${state.tabActiva === 'novotos' ? renderTablaNoVotos(stats.noVotos) : ''}
+                            ${state.tabActiva === 'controversias' ? renderTablaVotos(stats.controversias, 'orange') : ''}
+                            ${state.tabActiva === 'comunicaciones' ? renderTablaComunicaciones() : ''}
+                        </div>
+                    </div>
+                </main>
+            `;
+        }
+
+        function renderTablaVotos(votos, color) {
+            if (votos.length === 0) {
+                return `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p class="font-bold">No hay registros en esta categoría</p>
+                    </div>
+                `;
+            }
+            
+            const colorClass = color === 'green' ? 'text-green-600' : color === 'yellow' ? 'text-yellow-600' : 'text-orange-600';
+            
+            return `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-red-50">
+                            <th class="px-4 py-3 text-left font-bold text-red-900">Cédula</th>
+                            <th class="px-4 py-3 text-left font-bold text-red-900">Nombre</th>
+                            <th class="px-4 py-3 text-center font-bold text-red-900">Mesa</th>
+                            <th class="px-4 py-3 text-center font-bold text-red-900">Orden</th>
+                            <th class="px-4 py-3 text-center font-bold text-red-900">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${votos.map(v => {
+                            const hora = v.timestamp ? new Date(v.timestamp).toLocaleTimeString('es-PY', {hour: '2-digit', minute: '2-digit'}) : '-';
+                            return `
+                                <tr class="border-b border-red-50 hover:bg-red-50/50 transition-all">
+                                    <td class="px-4 py-3 font-bold text-slate-900">${v.cedula || '-'}</td>
+                                    <td class="px-4 py-3 font-bold text-slate-900">${v.nombre || '-'}</td>
+                                    <td class="px-4 py-3 text-center font-black ${colorClass}">${v.mesa || '-'}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">${v.orden || '-'}</td>
+                                    <td class="px-4 py-3 text-center text-xs text-slate-500">${hora}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderTablaNoVotos(noVotos) {
+            if (noVotos.length === 0) {
+                return `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p class="font-bold">No hay registros de no votos</p>
+                    </div>
+                `;
+            }
+            
+            return `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-red-50">
+                            <th class="px-4 py-3 text-left font-bold text-red-900">Cédula</th>
+                            <th class="px-4 py-3 text-left font-bold text-red-900">Nombre</th>
+                            <th class="px-4 py-3 text-center font-bold text-red-900">Mesa</th>
+                            <th class="px-4 py-3 text-center font-bold text-red-900">Motivo</th>
+                            <th class="px-4 py-3 text-left font-bold text-red-900">Observación</th>
+                            <th class="px-4 py-3 text-center font-bold text-red-900">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${noVotos.map(nv => {
+                            const hora = nv.timestamp ? new Date(nv.timestamp).toLocaleTimeString('es-PY', {hour: '2-digit', minute: '2-digit'}) : '-';
+                            return `
+                                <tr class="border-b border-red-50 hover:bg-red-50/50 transition-all">
+                                    <td class="px-4 py-3 font-bold text-slate-900">${nv.cedula || '-'}</td>
+                                    <td class="px-4 py-3 font-bold text-slate-900">${nv.nombre || '-'}</td>
+                                    <td class="px-4 py-3 text-center font-black text-red-600">${nv.mesa || '-'}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="bg-red-100 text-red-700 font-bold text-xs px-2 py-1 rounded-lg">${nv.motivo || 'Otro'}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-xs text-slate-600">${nv.observacion || '-'}</td>
+                                    <td class="px-4 py-3 text-center text-xs text-slate-500">${hora}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderTablaComunicaciones() {
+            if (state.comunicaciones.length === 0) {
+                return `
+                    <div class="text-center py-12 text-slate-400">
+                        <i class="fas fa-phone text-4xl mb-3"></i>
+                        <p class="font-bold">No hay comunicaciones registradas</p>
+                        <p class="text-xs mt-2">Las comunicaciones se guardan localmente durante esta sesión</p>
+                    </div>
+                `;
+            }
+            
+            return `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-blue-50">
+                            <th class="px-4 py-3 text-left font-bold text-blue-900">Cédula</th>
+                            <th class="px-4 py-3 text-left font-bold text-blue-900">Nombre</th>
+                            <th class="px-4 py-3 text-left font-bold text-blue-900">Nota</th>
+                            <th class="px-4 py-3 text-center font-bold text-blue-900">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.comunicaciones.map(c => {
+                            const hora = new Date(c.timestamp).toLocaleTimeString('es-PY', {hour: '2-digit', minute: '2-digit'});
+                            return `
+                                <tr class="border-b border-blue-50 hover:bg-blue-50/50 transition-all">
+                                    <td class="px-4 py-3 font-bold text-slate-900">${c.cedula}</td>
+                                    <td class="px-4 py-3 font-bold text-slate-900">${c.nombre}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">${c.nota || '-'}</td>
+                                    <td class="px-4 py-3 text-center text-xs text-slate-500">${hora}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Iniciar actualización automática cada 10 segundos
+        setInterval(() => {
+            if (state.autenticado && !state.cargando) {
+                cargarDatos();
+            }
+        }, 10000);
+
+        render();
+    </script>
+</body>
+</html>
