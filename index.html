@@ -6,6 +6,7 @@
   <title>SECCIONAL 40 - Control de Votación</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
   <script>
     tailwind.config = {
       theme: {
@@ -18,25 +19,13 @@
     }
   </script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .animate-in { animation: fadeIn 0.3s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .grid-mesa { display: grid; gap: 4px; }
     .btn-mesa { aspect-ratio: 1; font-size: 11px; font-weight: 700; border-radius: 6px; transition: all 0.2s; }
     .btn-mesa:hover { transform: scale(1.05); }
     @media (max-width: 640px) {
       .grid-mesa { gap: 2px !important; }
       .btn-mesa { font-size: 9px; border-radius: 3px; }
-      .tabla-lista-desktop { display: none !important; }
-      .card-lista-mobile { display: block !important; }
     }
-    @media (min-width: 641px) {
-      .card-lista-mobile { display: none !important; }
-      .tabla-lista-desktop { display: block !important; }
-    }
-    .card-lista-mobile { display: none; }
-    .card-elector { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
   </style>
 </head>
     <body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
@@ -566,7 +555,7 @@
             </div>
             
             <!-- MENÚ DE NAVEGACIÓN -->
-            <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap">
+            <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap max-w-full">
               <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${state.escuela || 'Esc. ...'}</span>
               <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
               <a href="index.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Votación</a>
@@ -709,7 +698,6 @@
               <!-- VISTA LISTA -->
               <!-- DESKTOP: tabla horizontal -->
               <div class="tabla-lista-desktop bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
-                <div class="max-h-[600px] overflow-y-auto scroll-hidden">
                   <table class="w-full text-sm">
                     <thead class="sticky top-0 z-10">
                       <tr class="bg-red-900 text-white">
@@ -772,7 +760,6 @@
                       }).join('')}
                     </tbody>
                   </table>
-                </div>
               </div>
               <!-- MOBILE: tarjetas verticales -->
               <div class="card-lista-mobile">

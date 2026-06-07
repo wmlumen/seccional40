@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SECCIONAL 40 - Seguimiento de Cargas</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
     <style>
         :root {
             --bg: #fef2f2;
@@ -240,7 +241,13 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 760px;
+        }
+
+        .only-mobile { display: none; }
+        .only-desktop { display: block; }
+        @media (max-width: 768px) {
+            .only-mobile { display: block; }
+            .only-desktop { display: none; }
         }
 
         th,
@@ -718,7 +725,29 @@
                 return `<div class="empty">No hay mesas que coincidan con la busqueda.</div>`;
             }
 
-            return `
+            // Vista tarjetas en móvil
+            const cardsMobile = `
+                <div class="people-list" style="margin-bottom:16px;">
+                    ${mesas.map(mesa => `
+                        <article class="person" onclick="selectMesa('${mesa.key}')" style="cursor:pointer; ${mesa.key === state.mesaActiva ? 'box-shadow:0 0 0 2px #fecaca;' : ''}">
+                            <div class="person-top">
+                                <div>
+                                    <div class="person-name">Mesa ${mesa.mesa}</div>
+                                    <div class="person-doc">${mesa.ultimoRegistro ? mesa.ultimoRegistro.marcaTemporal : 'Sin registros recientes'}</div>
+                                </div>
+                                <div class="pill">Registros ${mesa.totalRegistros}</div>
+                            </div>
+                            <div class="person-tags">
+                                <span class="tag">Cédulas: ${mesa.totalCedulas}</span>
+                                <span class="tag">Órdenes: ${mesa.totalOrdenes}</span>
+                            </div>
+                        </article>
+                    `).join('')}
+                </div>
+            `;
+
+            // Vista tabla en escritorio
+            const tableDesktop = `
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -743,6 +772,11 @@
                         </tbody>
                     </table>
                 </div>
+            `;
+
+            return `
+                <div class="only-mobile">${cardsMobile}</div>
+                <div class="only-desktop">${tableDesktop}</div>
             `;
         }
 

@@ -7,15 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .animate-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .scroll-hidden::-webkit-scrollbar { width: 6px; height: 6px; }
-        .scroll-hidden::-webkit-scrollbar-track { background: #fef2f2; }
-        .scroll-hidden::-webkit-scrollbar-thumb { background: #fecaca; border-radius: 3px; }
-        .scroll-hidden::-webkit-scrollbar-thumb:hover { background: #dc2626; }
         .filtro-btn-active { background: #dc2626 !important; color: white !important; border-color: #dc2626 !important; }
     </style>
 </head>
@@ -202,7 +195,7 @@
                         </div>
 
                         <!-- MENÚ DE NAVEGACIÓN -->
-                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap">
+                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap max-w-full">
                             <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${state.escuela || 'Esc. ...'}</span>
                             <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
                             <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
@@ -318,15 +311,48 @@
                             </div>
                         </div>
 
-                        <!-- TABLA -->
-                        <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
-                            <div class="max-h-[600px] overflow-y-auto overflow-x-auto scroll-hidden">
-                                ${lista.length === 0 ? `
-                                    <div class="text-center py-12 text-slate-400">
-                                        <i class="fas fa-inbox text-4xl mb-3"></i>
-                                        <p class="font-bold">No se encontraron electores</p>
-                                    </div>
-                                ` : `
+                        <!-- LISTA / TABLA -->
+                        <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-100">
+                            ${lista.length === 0 ? `
+                                <div class="text-center py-12 text-slate-400">
+                                    <i class="fas fa-inbox text-4xl mb-3"></i>
+                                    <p class="font-bold">No se encontraron electores</p>
+                                </div>
+                            ` : `
+                                <!-- Vista tarjetas en móvil -->
+                                <div class="md:hidden divide-y divide-slate-100">
+                                    ${lista.map(e => {
+                                        const estadoClass = e.estado === 'voto' 
+                                            ? 'bg-green-100 text-green-700 border-green-200' 
+                                            : e.estado === 'no_voto' 
+                                                ? 'bg-red-100 text-red-700 border-red-200' 
+                                                : 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                                        const estadoIcon = e.estado === 'voto'
+                                            ? 'fa-check-circle'
+                                            : e.estado === 'no_voto'
+                                                ? 'fa-user-slash'
+                                                : 'fa-hourglass-half';
+                                        return `
+                                            <div class="p-3 hover:bg-red-50/30 transition-all">
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <div class="text-xs font-black text-slate-500">
+                                                        Mesa <span class="text-slate-900">${e.mesa}</span> · Orden <span class="text-slate-900">${e.orden}</span>
+                                                    </div>
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg border ${estadoClass}">
+                                                        <i class="fas ${estadoIcon}"></i>
+                                                        ${e.estado === 'voto' ? 'VOTO' : e.estado === 'no_voto' ? 'NO VOTO' : 'SIN REGISTRO'}
+                                                    </span>
+                                                </div>
+                                                <div class="font-mono text-xs font-bold text-slate-700 mb-0.5">CI: ${e.cedula}</div>
+                                                <div class="font-bold text-slate-900 text-sm mb-0.5">${e.nombreCompleto}</div>
+                                                <div class="text-[11px] text-slate-500">Local: ${e.local} · Dirigente: <span class="font-semibold text-slate-700">${e.dirigenteAsignado || e.dirigenteNombre || '-'}</span></div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+
+                                <!-- Vista tabla en escritorio -->
+                                <div class="hidden md:block overflow-x-auto">
                                     <table class="w-full text-sm">
                                         <thead class="sticky top-0 z-10">
                                             <tr class="bg-red-900 text-white">
@@ -370,8 +396,8 @@
                                             }).join('')}
                                         </tbody>
                                     </table>
-                                `}
-                            </div>
+                                </div>
+                            `}
                         </div>
 
                         <!-- MENSAJE -->

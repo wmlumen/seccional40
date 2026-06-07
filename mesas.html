@@ -7,12 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .animate-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
     <div id="app"></div>
@@ -260,7 +255,7 @@
                         </div>
                         
                         <!-- MENÚ DE NAVEGACIÓN -->
-                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap">
+                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap max-w-full">
                           <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${sessionStorage.getItem('seccional40_escuela') || 'Esc. ...'}</span>
                           <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
                           <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
@@ -366,15 +361,57 @@
                         </div>
                     </div>
 
-                    <!-- TABLA DE MESAS -->
+                    <!-- TABLA / TARJETAS DE MESAS -->
                     <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 mb-6 overflow-hidden">
                         <div class="p-4 md:p-6 border-b border-red-100">
                             <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">
                                 <i class="fas fa-table text-red-600 mr-2"></i>Estado por Mesa
                             </h2>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm" style="min-width:600px">
+
+                        <!-- Vista tarjetas en móvil -->
+                        <div class="md:hidden divide-y divide-red-50">
+                            ${mesasArray.map(m => {
+                                const porcentaje = parseFloat(m.participacion) || 0;
+                                const color = porcentaje >= 80 ? 'text-green-600' : porcentaje >= 50 ? 'text-yellow-600' : porcentaje >= 30 ? 'text-orange-600' : 'text-red-600';
+                                const bgColor = porcentaje >= 80 ? 'bg-green-50' : porcentaje >= 50 ? 'bg-yellow-50' : porcentaje >= 30 ? 'bg-orange-50' : 'bg-red-50';
+                                const estadoTexto = porcentaje >= 80 ? 'Excelente' : porcentaje >= 50 ? 'Buena' : porcentaje >= 30 ? 'Regular' : 'Baja';
+                                return `
+                                    <div class="p-4">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-black text-sm">${m.mesa}</span>
+                                                <span class="font-bold text-slate-900 text-sm">Mesa ${m.mesa}</span>
+                                            </div>
+                                            <span class="${bgColor} ${color} font-bold text-[11px] px-3 py-1 rounded-full">${estadoTexto}</span>
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2 text-xs mb-2">
+                                            <div>
+                                                <p class="text-slate-500 font-bold uppercase text-[10px]">Electores</p>
+                                                <p class="font-black text-slate-900 text-sm">${m.totalElectores}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-500 font-bold uppercase text-[10px]">Votos</p>
+                                                <p class="font-black text-red-600 text-sm">${m.votos || 0}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-500 font-bold uppercase text-[10px]">Participación</p>
+                                                <p class="font-black ${color} text-sm">${porcentaje}%</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="w-full h-3 bg-red-100 rounded-full overflow-hidden">
+                                                <div class="h-full rounded-full ${porcentaje >= 80 ? 'bg-green-500' : porcentaje >= 50 ? 'bg-yellow-500' : porcentaje >= 30 ? 'bg-orange-500' : 'bg-red-500'}" style="width: ${Math.min(porcentaje, 100)}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <!-- Vista tabla en escritorio -->
+                        <div class="hidden md:block overflow-x-auto">
+                            <table class="w-full text-sm">
                                 <thead>
                                     <tr class="bg-red-50">
                                         <th class="px-4 py-3 text-left font-bold text-red-900">Mesa</th>
