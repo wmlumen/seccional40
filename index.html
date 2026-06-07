@@ -36,11 +36,13 @@
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
     const DIRIGENTES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?gid=79263661&single=true&output=csv';
     const MAX_VOTOS = 350;
+    const ACCESS_PASSWORD = 'Paraguay100';
+    const AUTH_SESSION_KEY = 'seccional40_auth';
     const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec'; // â† Pegar aquÃ­ la URL del Web App de Google Apps Script (opcional)
     
     // ==================== ESTADO ====================
     let state = {
-      autenticado: false,
+      autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
       cargando: false,
       mensaje: '',
       padron: [],
@@ -62,43 +64,35 @@
       return String(valor || '').replace(/[.\s,-]/g, '').trim();
     }
 
-    async function login() {
-      const miembroSelect = document.getElementById('miembroSelect');
+    function logout() {
+      sessionStorage.removeItem(AUTH_SESSION_KEY);
+      state.autenticado = false;
+      state.miembroActual = null;
+      state.veedor = 'Coordinacion';
+      state.veedorNombre = 'Coordinacion';
+      render();
+    }
+
+    function login() {
       const passwordInput = document.getElementById('passwordInput');
-      const cedula = limpiarCedula(miembroSelect ? miembroSelect.value : '');
       const password = passwordInput ? passwordInput.value.trim() : '';
-      if (!cedula || !password) {
-        alert('Selecciona un miembro de mesa y carga su contrasena.');
+      if (!password) {
+        alert('Ingresa la contrasena.');
         return;
       }
 
-      try {
-        const params = new URLSearchParams({
-          action: 'validar_miembro',
-          cedula: cedula,
-          password: password
-        });
-        const response = await fetch(API_URL + '?' + params.toString());
-        const result = await response.json();
-
-        if (!result.success || !result.miembro) {
-          alert(result.error || 'No se pudo validar el acceso.');
-          return;
-        }
-
-        state.autenticado = true;
-        state.miembroActual = result.miembro;
-        state.veedor = result.miembro.cedula;
-        state.veedorNombre = result.miembro.nombre;
-        if (result.miembro.mesa) {
-          state.mesaSeleccionada = parseInt(result.miembro.mesa) || 1;
-          state.mesaBloqueada = true;
-        }
-        cargarPadron();
-      } catch (error) {
-        console.error('Error validando miembro:', error);
-        alert('Error validando acceso. VerificÃ¡ la conexiÃ³n con el backend.');
+      if (password !== ACCESS_PASSWORD) {
+        alert('Contrasena incorrecta.');
+        return;
       }
+
+      sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
+      state.autenticado = true;
+      state.miembroActual = { cedula: 'GENERAL', nombre: 'Coordinacion General', mesa: '' };
+      state.veedor = 'GENERAL';
+      state.veedorNombre = 'Coordinacion General';
+      state.mesaBloqueada = false;
+      cargarPadron();
     }
 
     // ==================== CARGAR PADRON DESDE CSV ====================
@@ -389,16 +383,6 @@
             
              <div class="space-y-4">
               <div class="relative">
-                <select id="miembroSelect" 
-                  class="w-full px-6 py-3 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center appearance-none cursor-pointer bg-white">
-                  <option value="">Seleccionar Miembro de Mesa</option>
-                  ${state.dirigentes.map(d => `<option value="${d.cedula}">${d.nombre}${d.mesa ? ' - Mesa ' + d.mesa : ''}</option>`).join('')}
-                </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="m6 9 6 6 6-6"/></svg>
-                </div>
-              </div>
-              <div class="relative">
                 <input type="password" id="passwordInput" placeholder="Contrasena" 
                   class="w-full px-6 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center"
                   onkeypress="if(event.key === 'Enter') login()">
@@ -408,7 +392,7 @@
               </button>
             </div>
             
-            <p class="text-xs text-slate-400 mt-6">Acceso solo para miembros habilitados en Miembros_mesa</p>
+            <p class="text-xs text-slate-400 mt-6">Acceso unificado para todo el sistema</p>
           </div>
         </div>
       `;
@@ -678,7 +662,14 @@
     // ==================== INICIALIZAR ====================
     // Cargar dirigentes al inicio
     cargarDirigentes();
-    render();
+    if (state.autenticado) {
+      state.miembroActual = { cedula: 'GENERAL', nombre: 'Coordinacion General', mesa: '' };
+      state.veedor = 'GENERAL';
+      state.veedorNombre = 'Coordinacion General';
+      cargarPadron();
+    } else {
+      render();
+    }
   </script>
 </body>
 </html>
