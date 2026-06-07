@@ -1575,18 +1575,54 @@
     </div>
 
     <script>
+        const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
+        let padronData = [];
+        
+        async function cargarPadronDesdeCSV() {
+            try {
+                const response = await fetch(PADRON_CSV_URL);
+                const csvText = await response.text();
+                const lineas = csvText.split('\n').filter(l => l.trim());
+                const registros = [];
+                for (let i = 1; i < lineas.length; i++) {
+                    const partes = lineas[i].split(',');
+                    if (partes.length >= 8) {
+                        const cedula = partes[5].replace(/\./g, '').trim();
+                        const mesa = parseInt(partes[3].trim()) || 0;
+                        const orden = parseInt(partes[4].trim()) || 0;
+                        registros.push({
+                            secc: partes[0].trim(),
+                            num: partes[1].trim(),
+                            local: partes[2].trim(),
+                            mesa: mesa,
+                            orden: orden,
+                            cedula: cedula,
+                            apellido: partes[6].trim(),
+                            nombre: partes[7].trim(),
+                            nombreCompleto: (partes[6].trim() + ' ' + partes[7].trim()).trim()
+                        });
+                    }
+                }
+                padronData = registros;
+                console.log('Padrón cargado en panel:', registros.length);
+                return registros;
+            } catch (error) {
+                console.error('Error cargando padrón en panel:', error);
+                return [];
+            }
+        }
+
         // ==================== VOTOS RECIENTES ====================
         function renderVotosRecientes() {
             const tbody = document.getElementById('votos-recientes-body');
             const counter = document.getElementById('votos-recientes-count');
             if (!tbody) return;
 
-            // Leer datos del sistema de votación (localStorage de index.html)
-            const datosGuardados = localStorage.getItem('seccional40_votos');
-            const datosVotos = datosGuardados ? JSON.parse(datosGuardados) : {};
-            
-            const padronGuardado = localStorage.getItem('seccional40_padron');
-            const padron = padronGuardado ? JSON.parse(padronGuardado) : [];
+            // Sin localStorage, no hay votos recientes disponibles
+            // Los votos se envían directamente a Google Sheets
+            tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><i class="fas fa-info-circle"></i><div class="empty-state-text">Los votos se registran en Google Sheets en tiempo real</div></td></tr>';
+            if (counter) counter.textContent = '0';
+        }
 
             // Convertir a array de registros de votos
             const registrosVotos = [];
@@ -1708,15 +1744,18 @@
         }
 
         // ==================== PANEL DE CONTROL ELECTORAL ====================
-        function cargarPanelElectoral() {
+        async function cargarPanelElectoral() {
             try {
-                // Leer datos del sistema de votación (del localStorage de index.html)
-                const datosGuardados = localStorage.getItem('seccional40_votos');
-                const datosVotos = datosGuardados ? JSON.parse(datosGuardados) : {};
+                // Cargar padrón desde CSV si no está cargado
+                if (!padronData || padronData.length === 0) {
+                    await cargarPadronDesdeCSV();
+                }
                 
-                // Leer datos del padrón
-                const padronGuardado = localStorage.getItem('seccional40_padron');
-                const padron = padronGuardado ? JSON.parse(padronGuardado) : [];
+                const padron = padronData || [];
+                
+                // Sin localStorage, no tenemos datos de votos en tiempo real
+                // Los votos se envían directamente a Google Sheets
+                const datosVotos = {};
                 
                 // Si no hay datos, mostrar mensaje
                 if (!padron || padron.length === 0) {
@@ -1724,11 +1763,12 @@
                         <div style="text-align: center; color: #fca5a5; padding: 30px;">
                             <i class="fas fa-info-circle" style="font-size: 32px; margin-bottom: 12px; display: block; color: #fecaca;"></i>
                             <p style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">No hay datos de mesas cargados</p>
-                            <p style="font-size: 12px;">Acceda al sistema de votación para cargar el padrón electoral</p>
+                            <p style="font-size: 12px;">Verificando conexión con el padrón electoral...</p>
                         </div>
                     `;
                     document.getElementById('lista-mesas').innerHTML = mensajeHTML;
                     document.getElementById('tabla-mesas').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #fca5a5;">Sin datos disponibles</td></tr>`;
+                    document.getElementById('tabla-dirigentes').innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #fca5a5;">Sin datos disponibles</td></tr>`;
                     return;
                 }
                 
@@ -1741,21 +1781,8 @@
                     mesas[p.mesa].total++;
                 });
                 
-                // Contar votos por mesa
-                Object.keys(datosVotos).forEach(orden => {
-                    const voto = datosVotos[orden];
-                    const elector = padron.find(p => p.orden === parseInt(orden));
-                    if (elector) {
-                        if (voto.tipo === 'voto') {
-                            mesas[elector.mesa].votos++;
-                        } else if (voto.tipo === 'ausente') {
-                            mesas[elector.mesa].ausentes++;
-                        }
-                        if (voto.controversia) {
-                            mesas[elector.mesa].controversias++;
-                        }
-                    }
-                });
+                // Contar votos por mesa (sin localStorage, no hay votos locales)
+                // Los datos reales están en Google Sheets
                 
                 // Calcular estadísticas
                 const totalMesas = Object.keys(mesas).length;

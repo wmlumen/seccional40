@@ -26,7 +26,7 @@ Sistema web para control de votación electoral - Seccional 40.
 
 ## 💾 ¿Dónde se guardan los votos?
 
-Los votos se guardan en **tres lugares**:
+Los votos se guardan directamente en **Google Sheets** (no se usa localStorage):
 
 ### 1. **Google Sheets** (Base de datos principal)
 **URL:** [https://docs.google.com/spreadsheets/d/1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I/edit](https://docs.google.com/spreadsheets/d/1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I/edit)
@@ -36,15 +36,10 @@ Los votos se guardan en **tres lugares**:
 - Hoja **"Resumen"**: Estadísticas por mesa
 - Hoja **"dirigentes"**: Lista de dirigentes (cédula, nombre)
 
-### 2. **localStorage** (Navegador)
-- `seccional40_votos`: Votos marcados (para el panel de reporte)
-- `seccional40_padron`: Padrón electoral cargado
-- `seccional40_dirigentes`: Lista de dirigentes
-
-### 3. **Google Apps Script** (Backend)
-- Recibe los datos desde `index.html`
-- Guarda en las hojas de Google Sheets
-- Actualiza el resumen automáticamente
+### 2. **Google Apps Script** (Backend)
+- Recibe los datos desde `index.html` vía POST
+- Guarda en las hojas de Google Sheets en tiempo real
+- No se guarda nada en el navegador (localStorage desactivado)
 
 ## 🚀 Tecnologías
 
