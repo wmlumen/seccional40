@@ -304,21 +304,28 @@
       }
       try {
         console.log('Enviando datos:', datos);
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            timestamp: new Date().toISOString(),
-            cedula: datos.cedula || '',
-            nombre: datos.nombre || '',
-            mesa: datos.mesa || '',
-            orden: datos.orden || '',
-            estado: datos.estado || '',
-            accion: datos.accion || '',
-            dirigente: state.veedor || 'Dirigente',
-            dirigenteNombre: state.veedorNombre || 'Dirigente',
-            origen: 'seccional40'
-          })
+        
+        // Construir URL con parámetros (más confiable para GAS)
+        var params = new URLSearchParams({
+          action: 'registrar',
+          timestamp: new Date().toISOString(),
+          cedula: datos.cedula || '',
+          nombre: datos.nombre || '',
+          mesa: datos.mesa || '',
+          orden: datos.orden || '',
+          estado: datos.estado || '',
+          accion: datos.accion || '',
+          dirigente: state.veedor || 'Dirigente',
+          dirigenteNombre: state.veedorNombre || 'Dirigente',
+          origen: 'seccional40'
+        });
+        
+        var url = API_URL + '?' + params.toString();
+        console.log('URL:', url);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
         });
         
         const result = await response.json();
