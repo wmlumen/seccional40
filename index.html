@@ -28,7 +28,15 @@
     @media (max-width: 640px) {
       .grid-mesa { gap: 2px !important; }
       .btn-mesa { font-size: 9px; border-radius: 3px; }
+      .tabla-lista-desktop { display: none !important; }
+      .card-lista-mobile { display: block !important; }
     }
+    @media (min-width: 641px) {
+      .card-lista-mobile { display: none !important; }
+      .tabla-lista-desktop { display: block !important; }
+    }
+    .card-lista-mobile { display: none; }
+    .card-elector { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
   </style>
 </head>
     <body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
@@ -50,10 +58,15 @@
     function esPc() { return getNivel() === 'pc'; }
     function getGridColumns() {
       const w = window.innerWidth;
-      if (w < 480) return 10;
-      if (w < 768) return 20;
-      return 30;
+      let cols;
+      if (w < 480) cols = 5;
+      else if (w < 640) cols = 10;
+      else cols = Math.floor(w / 55);
+      cols = Math.max(5, Math.min(cols, 30));
+      cols = Math.floor(cols / 5) * 5;
+      return cols;
     }
+    function isMobile() { return window.innerWidth < 640; }
     
     // ==================== ESTADO ====================
     let state = {
@@ -523,7 +536,7 @@
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { if (state.autenticado && !state.vistaLista) render(); }, 250);
+      resizeTimer = setTimeout(() => { if (state.autenticado) render(); }, 250);
     });
 
     // ==================== RENDER MAIN ====================
@@ -694,9 +707,10 @@
               </div>
               ` : `
               <!-- VISTA LISTA -->
-              <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
+              <!-- DESKTOP: tabla horizontal -->
+              <div class="tabla-lista-desktop bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
                 <div class="max-h-[600px] overflow-y-auto scroll-hidden">
-                  <table class="w-full text-sm" style="min-width:500px">
+                  <table class="w-full text-sm">
                     <thead class="sticky top-0 z-10">
                       <tr class="bg-red-900 text-white">
                         <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">#</th>
@@ -759,6 +773,52 @@
                     </tbody>
                   </table>
                 </div>
+              </div>
+              <!-- MOBILE: tarjetas verticales -->
+              <div class="card-lista-mobile">
+                ${electoresMesa.map(e => {
+                  const orden = e.orden;
+                  const voto = state.votos[getVotoKey(state.mesaSeleccionada, orden)];
+                  const tieneDirigente = e.dirigente;
+                  
+                  let estadoLabel, estadoClass, estadoIcon;
+                  if (voto?.controversia) {
+                    estadoLabel = 'CONTROVERSIA';
+                    estadoClass = 'bg-orange-100 text-orange-700 border-orange-200';
+                    estadoIcon = 'fa-exclamation-triangle';
+                  } else if (voto?.tipo === 'voto') {
+                    estadoLabel = 'VOTÓ';
+                    estadoClass = 'bg-green-100 text-green-700 border-green-200';
+                    estadoIcon = 'fa-check-circle';
+                  } else if (voto?.tipo === 'ausente') {
+                    estadoLabel = 'AUSENTE';
+                    estadoClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                    estadoIcon = 'fa-user-slash';
+                  } else {
+                    estadoLabel = 'SIN REGISTRO';
+                    estadoClass = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                    estadoIcon = 'fa-hourglass-half';
+                  }
+                  
+                  return `
+                    <div class="card-elector" onclick="mostrarOpcionesVoto(${orden})">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                          <span class="bg-red-900 text-white w-7 h-7 flex items-center justify-center rounded-lg text-xs font-black">${orden}</span>
+                          <span class="font-black text-slate-900">${e.apellido}, ${e.nombre}</span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-lg border ${estadoClass}">
+                          <i class="fas ${estadoIcon}"></i>
+                          ${estadoLabel}
+                        </span>
+                      </div>
+                      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+                        <div><strong class="text-slate-800">Cédula:</strong> ${e.cedula}</div>
+                        ${tieneDirigente ? `<div><strong class="text-blue-700">Dirigente:</strong> ${tieneDirigente}</div>` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
               </div>
               `}
                 
