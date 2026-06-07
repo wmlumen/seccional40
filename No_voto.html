@@ -252,6 +252,20 @@
                                 <p class="text-[10px] text-red-200 font-bold uppercase tracking-widest opacity-80">Registro No Votantes</p>
                             </div>
                         </div>
+                        
+                        <!-- MENÚ DE NAVEGACIÓN -->
+                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+                          <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${sessionStorage.getItem('seccional40_escuela') || 'Esc. ...'}</span>
+                          <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
+                          <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
+                          <a href="mesas.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Mesas</a>
+                          <a href="No_voto.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">No Voto</a>
+                          <span class="text-[10px] text-red-400 mx-1">|</span>
+                          <span class="text-[10px] text-red-300 font-bold uppercase">PC:</span>
+                          <a href="anomalias.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Anomalías</a>
+                          <a href="asistencia.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Seguimiento</a>
+                        </div>
+                        
                         <div class="text-right">
                             <p class="text-xs text-red-200">Total electores: ${state.padron.length}</p>
                         </div>

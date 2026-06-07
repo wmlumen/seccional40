@@ -22,8 +22,7 @@
     body { font-family: 'Inter', sans-serif; }
     .animate-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .grid-mesa { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
-    @media (max-width: 640px) { .grid-mesa { grid-template-columns: repeat(5, 1fr); } }
+    .grid-mesa { display: grid; gap: 4px; }
     .btn-mesa { aspect-ratio: 1; font-size: 11px; font-weight: 700; border-radius: 6px; transition: all 0.2s; }
     .btn-mesa:hover { transform: scale(1.05); }
   </style>
@@ -46,10 +45,12 @@
       cargando: false,
       mensaje: '',
       padron: [],
+      votos: {},
       dirigentes: [],
       mesaSeleccionada: null,
       mesaBloqueada: false,
-      votos: {},
+      gridColumns: 10,
+      escuela: '',
       consultaCedula: '',
       consultaResultado: null,
       transferLog: [],
@@ -162,10 +163,19 @@
         state.cargando = false;
         state.mensaje = `Padrón cargado: ${registros.length} electores`;
         
+        // Extraer nombre de escuela del primer registro
+        if (registros.length > 0 && !state.escuela) {
+          state.escuela = registros[0].local || '';
+          sessionStorage.setItem('seccional40_escuela', state.escuela);
+        }
+        
         // Sugerir mesa 1 por defecto
         if (!state.mesaSeleccionada) {
           state.mesaSeleccionada = 1;
         }
+        
+        // Cargar votos desde la API
+        await cargarVotos();
       } catch (error) {
         console.error('Error cargando padron:', error);
         state.cargando = false;
@@ -215,6 +225,46 @@
       } catch (error) {
         console.error('Error cargando dirigentes:', error);
       }
+    }
+
+    // ==================== CARGAR VOTOS DESDE API ====================
+    async function cargarVotos() {
+      try {
+        state.mensaje = 'Cargando registro de votos...';
+        render();
+        const data = await fetchJsonOrThrow(API_URL + '?action=votos&v=' + Date.now());
+        if (data && data.registros && data.registros.length > 0) {
+          let votosCargados = 0;
+          data.registros.forEach(r => {
+            const mesa = parseInt(r.mesa) || 0;
+            const orden = parseInt(r.orden) || 0;
+            // Solo cargar registros de tipo voto o ausente
+            if ((r.estado === 'voto' || r.estado === 'ausente') && mesa > 0 && orden > 0) {
+              const key = getVotoKey(mesa, orden);
+              // No sobrescribir si ya hay un registro local más reciente
+              if (!state.votos[key]) {
+                state.votos[key] = {
+                  tipo: r.estado,
+                  timestamp: r.timestamp ? new Date(r.timestamp).getTime() : Date.now(),
+                  dirigente: r.dirigente || 'API',
+                  mesa: mesa,
+                  orden: orden
+                };
+                votosCargados++;
+              }
+            }
+          });
+          console.log(`Votos cargados: ${votosCargados} registros desde API`);
+          state.mensaje = `Votos sincronizados: ${votosCargados} registros`;
+        } else {
+          console.log('No se encontraron votos previos en la API');
+          state.mensaje = 'Sin votos previos en la nube';
+        }
+      } catch (error) {
+        console.error('Error cargando votos:', error);
+        state.mensaje = '⚠️ Error cargando votos de la nube';
+      }
+      render();
     }
 
     // ==================== BUSCAR POR CEDULA ====================
@@ -456,6 +506,7 @@
             
             <!-- MENÚ DE NAVEGACIÓN -->
             <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+              <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${state.escuela || 'Esc. ...'}</span>
               <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
               <a href="index.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Votación</a>
               <a href="mesas.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Mesas</a>
@@ -529,9 +580,27 @@
                 </div>
               </div>
 
+              <!-- CONTROL DE COLUMNAS -->
+              <div class="bg-white p-3 rounded-[2rem] shadow-2xl border border-slate-100 mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Columnas:</span>
+                    ${[10, 20, 30, 40, 50].map(n => `
+                      <button onclick="state.gridColumns=${n}; render();"
+                        class="px-3 py-1 text-xs font-bold rounded-lg transition-all ${state.gridColumns === n ? 'bg-red-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                        ${n}
+                      </button>
+                    `).join('')}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-slate-400 font-bold">${cantidadBotones} electores</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- GRID DE BOTONES -->
               <div class="bg-white p-4 rounded-[2rem] shadow-2xl border border-slate-100">
-                <div class="grid-mesa">
+                <div class="grid-mesa" style="grid-template-columns: repeat(${Math.min(state.gridColumns, cantidadBotones || 1)}, 1fr)">
                   ${Array.from({ length: cantidadBotones }, (_, i) => {
                     const orden = i + 1;
                     const voto = state.votos[getVotoKey(state.mesaSeleccionada, orden)];

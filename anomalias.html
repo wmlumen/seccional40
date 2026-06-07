@@ -45,7 +45,6 @@
             autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
             cargando: false,
             votos: [],
-            noVotos: [],
             padron: [],
             mesasInfo: {},
             ultimaActualizacion: null,
@@ -137,11 +136,8 @@
                 return;
             }
             try {
-                // Cargar votos y no_votos en paralelo
-                const [dataVotos, dataNoVotos] = await Promise.all([
-                    fetchJsonOrThrow(API_URL + '?action=votos'),
-                    fetchJsonOrThrow(API_URL + '?action=no_votos')
-                ]);
+                // Cargar votos
+                const dataVotos = await fetchJsonOrThrow(API_URL + '?action=votos');
                 
                 if (dataVotos && dataVotos.registros) {
                     const votos = dataVotos.registros
@@ -153,17 +149,8 @@
                     state.votos = votos;
                 }
                 
-                if (dataNoVotos && dataNoVotos.registros) {
-                    state.noVotos = dataNoVotos.registros.map(r => ({
-                        ...r,
-                        timestamp: new Date(r.timestamp).getTime()
-                    }));
-                } else {
-                    state.noVotos = [];
-                }
-                
                 state.ultimaActualizacion = new Date();
-                state.mensaje = `Datos actualizados: ${state.votos.length} votos, ${state.noVotos.length} no-votos`;
+                state.mensaje = `Datos actualizados: ${state.votos.length} votos`;
             } catch (e) {
                 console.error('Error cargando datos:', e);
                 state.mensaje = e && e.message ? e.message : 'Error cargando datos del servidor';
@@ -356,42 +343,7 @@
             return resultados;
         }
 
-        // ============ DETECTAR NO VOTOS QUE LUEGO VOTARON ============
-
-        function detectarNoVotosQueVotaron() {
-            const anomalies = [];
-            
-            // Crear mapa de no-votos por cédula
-            const noVotosMap = {};
-            state.noVotos.forEach(nv => {
-                const cedula = nv.cedula;
-                if (!noVotosMap[cedula] || nv.timestamp > noVotosMap[cedula].timestamp) {
-                    noVotosMap[cedula] = nv;
-                }
-            });
-            
-            // Buscar cédulas que están en ambos: no-votos y votos
-            state.votos.forEach(v => {
-                const cedula = v.cedula;
-                if (noVotosMap[cedula]) {
-                    const noVotoRegistro = noVotosMap[cedula];
-                    // Si votó DESPUÉS de haberse registrado como no-voto
-                    if (v.timestamp > noVotoRegistro.timestamp) {
-                        anomalies.push({
-                            cedula: cedula,
-                            nombre: v.nombre || noVotoRegistro.nombre || '-',
-                            mesa: v.mesa || noVotoRegistro.mesa || '-',
-                            motivoNoVoto: noVotoRegistro.motivo || 'Sin motivo',
-                            observacionNoVoto: noVotoRegistro.observacion || '-',
-                            horaNoVoto: new Date(noVotoRegistro.timestamp),
-                            horaVoto: new Date(v.timestamp)
-                        });
-                    }
-                }
-            });
-            
-            return anomalies;
-        }
+        // NOTA: detectarNoVotosQueVotaron fue removido - los no-votos no se procesan en anomalías
 
         function formatDuration(seconds) {
             if (seconds === null || seconds === undefined) return '-';
@@ -469,6 +421,20 @@
                                 <p class="text-[10px] text-red-200 font-bold uppercase tracking-widest opacity-80">Detección de Anomalías</p>
                             </div>
                         </div>
+                        
+                        <!-- MENÚ DE NAVEGACIÓN -->
+                        <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+                          <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${sessionStorage.getItem('seccional40_escuela') || 'Esc. ...'}</span>
+                          <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
+                          <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
+                          <a href="mesas.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Mesas</a>
+                          <a href="No_voto.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">No Voto</a>
+                          <span class="text-[10px] text-red-400 mx-1">|</span>
+                          <span class="text-[10px] text-red-300 font-bold uppercase">PC:</span>
+                          <a href="anomalias.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Anomalías</a>
+                          <a href="asistencia.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Seguimiento</a>
+                        </div>
+                        
                         <div class="flex items-center gap-4 text-xs">
                             <div class="text-right">
                                 <p class="text-red-200">Última actualización</p>
@@ -534,15 +500,7 @@
                             <div class="text-xs font-bold text-slate-500 uppercase mb-1">Alarmas Activas</div>
                             <div class="text-3xl font-black ${mesasAlarma.length > 0 ? 'text-red-600' : 'text-slate-900'}">${mesasAlarma.length}</div>
                         </div>
-                        ${(() => {
-                            const criticas = detectarNoVotosQueVotaron();
-                            return `
-                                <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-100 text-center ${criticas.length > 0 ? 'ring-2 ring-red-500' : ''}">
-                                    <div class="text-xs font-bold text-slate-500 uppercase mb-1">Anomalías Críticas</div>
-                                    <div class="text-3xl font-black ${criticas.length > 0 ? 'text-red-600' : 'text-slate-900'}">${criticas.length}</div>
-                                </div>
-                            `;
-                        })()}
+
                     </div>
 
                     <!-- MENSAJE -->
@@ -725,55 +683,7 @@
                         </div>
                     </div>
 
-                    <!-- NO VOTOS QUE VOTARON - ANOMALÍA CRÍTICA -->
-                    ${(() => {
-                        const noVotosQueVotaron = detectarNoVotosQueVotaron();
-                        return noVotosQueVotaron.length > 0 ? `
-                            <div class="bg-red-600 text-white rounded-[2rem] shadow-2xl mb-6 overflow-hidden animate-in alarm-ring">
-                                <div class="p-4 md:p-6 border-b border-red-500">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shake">
-                                            <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
-                                        </div>
-                                        <div>
-                                            <h2 class="text-xl font-black uppercase tracking-tighter">ANOMALÍA CRÍTICA</h2>
-                                            <p class="text-red-100 font-bold text-sm">${noVotosQueVotaron.length} persona${noVotosQueVotaron.length > 1 ? 's' : ''} reportada${noVotosQueVotaron.length > 1 ? 's' : ''} como NO VOTO pero luego votaron</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-4 md:p-6 overflow-x-auto">
-                                    <table class="w-full text-sm">
-                                        <thead>
-                                            <tr class="bg-red-500">
-                                                <th class="px-4 py-3 text-left font-bold text-white">Cédula</th>
-                                                <th class="px-4 py-3 text-left font-bold text-white">Nombre</th>
-                                                <th class="px-4 py-3 text-center font-bold text-white">Mesa</th>
-                                                <th class="px-4 py-3 text-center font-bold text-white">Motivo No Voto</th>
-                                                <th class="px-4 py-3 text-left font-bold text-white">Observación</th>
-                                                <th class="px-4 py-3 text-center font-bold text-white">Hora No Voto</th>
-                                                <th class="px-4 py-3 text-center font-bold text-white">Hora Voto</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${noVotosQueVotaron.map(nv => `
-                                                <tr class="border-b border-red-500/30 hover:bg-red-500/30 transition-all">
-                                                    <td class="px-4 py-3 font-bold">${nv.cedula}</td>
-                                                    <td class="px-4 py-3 font-bold">${nv.nombre}</td>
-                                                    <td class="px-4 py-3 text-center font-black">${nv.mesa}</td>
-                                                    <td class="px-4 py-3 text-center">
-                                                        <span class="bg-white text-red-600 font-bold text-xs px-2 py-1 rounded-lg">${nv.motivoNoVoto}</span>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-xs">${nv.observacionNoVoto}</td>
-                                                    <td class="px-4 py-3 text-center font-bold">${formatTime(nv.horaNoVoto)}</td>
-                                                    <td class="px-4 py-3 text-center font-bold bg-white/20 rounded-lg">${formatTime(nv.horaVoto)}</td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        ` : '';
-                    })()}
+
 
                     <!-- LEYENDA -->
                     <div class="mt-6 bg-white rounded-2xl p-4 shadow-lg border border-red-100">
@@ -795,10 +705,7 @@
                                 <div class="w-4 h-4 bg-red-600 rounded-full"></div>
                                 <span class="font-bold text-slate-700">ALARMA: 3+ consecutivos rápidos</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="w-4 h-4 bg-red-600 rounded-full"></div>
-                                <span class="font-bold text-slate-700">ANOMALÍA CRÍTICA: No Voto que votó</span>
-                            </div>
+
                         </div>
                     </div>
                 </main>

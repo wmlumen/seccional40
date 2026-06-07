@@ -24,7 +24,7 @@
         // ============ CONFIGURACIÓN ============
         const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
         const DIRIGENTES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?gid=79263661&single=true&output=csv';
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycby8Fw0HaV7ZS3hGL2lbzjsdPiJsdQcyMPmw9OBB5KFTN-qU3NS4GGR1Q3CMl4mJpNN6vg/exec';
         
         // ============ ESTADO ============
         let state = {
@@ -541,6 +541,7 @@
                         
                         <!-- MENÚ DE NAVEGACIÓN -->
                         <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+                          <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${sessionStorage.getItem('seccional40_escuela') || 'Esc. ...'}</span>
                           <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
                           <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
                           <a href="dirigente.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Dirigente</a>

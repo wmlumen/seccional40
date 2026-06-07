@@ -434,6 +434,7 @@
     <script>
         const PASSWORD = 'Paraguay100';
         const AUTH_SESSION_KEY = 'seccional40_auth';
+        const API_URL = 'https://script.google.com/macros/s/AKfycby8Fw0HaV7ZS3hGL2lbzjsdPiJsdQcyMPmw9OBB5KFTN-qU3NS4GGR1Q3CMl4mJpNN6vg/exec';
         const SPREADSHEET_ID = '1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I';
         const RESPUESTAS_GID = '1919603001';
         const RESPUESTAS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${RESPUESTAS_GID}`;
@@ -538,33 +539,34 @@
         }
 
         async function loadResponses() {
-            const response = await fetch(RESPUESTAS_CSV_URL);
-            if (!response.ok) {
-                throw new Error('No se pudo leer la hoja Respuestas de formulario 1');
+            const response = await fetch(API_URL + '?action=votos');
+            const text = await response.text();
+
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                throw new Error('Respuesta invalida del backend');
             }
 
-            const text = await response.text();
-            const lines = text.split(/\r?\n/).filter(line => line.trim());
-            const records = [];
+            if (!data || !data.registros) {
+                throw new Error('No se pudieron cargar los registros');
+            }
 
-            for (let i = 1; i < lines.length; i++) {
-                const row = parseCSVLine(lines[i]);
-                if (row.length < 4) continue;
-
-                const mesa = normalizeText(row[2]);
+            const records = data.registros.map((r, i) => {
+                const mesa = normalizeText(r.mesa || '');
                 const item = {
                     index: i,
-                    marcaTemporal: normalizeText(row[0]),
-                    timestamp: parseTimestamp(row[0]),
-                    cedula: cleanCedula(row[1]),
+                    marcaTemporal: r.timestamp || '',
+                    timestamp: r.timestamp ? new Date(r.timestamp) : new Date(0),
+                    cedula: cleanCedula(r.cedula || ''),
                     mesa: mesa,
-                    orden: normalizeText(row[3]),
+                    orden: normalizeText(r.orden || ''),
                     mesaKey: mesa || 'SIN_MESA',
-                    busqueda: normalizeKey(`${row[0]} ${row[1]} ${row[2]} ${row[3]}`)
+                    busqueda: normalizeKey(`${r.timestamp || ''} ${r.cedula || ''} ${mesa} ${r.orden || ''}`)
                 };
-
-                records.push(item);
-            }
+                return item;
+            });
 
             records.sort((a, b) => {
                 const aTime = a.timestamp ? a.timestamp.getTime() : 0;
@@ -841,12 +843,24 @@
             app.innerHTML = `
                 <div class="shell">
                     <header class="header">
+                        <!-- MENÚ DE NAVEGACIÓN -->
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; background:#7f1d1d; padding:8px 12px; border-radius:12px; border:1px solid #991b1b; margin-bottom:12px;">
+                          <span style="color:#fca5a5; font-size:10px; font-weight:700; text-transform:uppercase; margin-right:5px;">📍 ${sessionStorage.getItem('seccional40_escuela') || 'Esc. ...'}</span>
+                          <span style="color:#fca5a5; font-size:10px; font-weight:700; text-transform:uppercase; margin-right:5px;">Colegio:</span>
+                          <a href="index.html" style="color:#fecaca; font-size:10px; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='transparent'">Votación</a>
+                          <a href="mesas.html" style="color:#fecaca; font-size:10px; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='transparent'">Mesas</a>
+                          <a href="No_voto.html" style="color:#fecaca; font-size:10px; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='transparent'">No Voto</a>
+                          <span style="color:#fca5a5; font-size:10px; margin:0 4px;">|</span>
+                          <span style="color:#fca5a5; font-size:10px; font-weight:700; text-transform:uppercase;">PC:</span>
+                          <a href="anomalias.html" style="color:#fecaca; font-size:10px; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='transparent'">Anomalías</a>
+                          <a href="asistencia.html" style="background:#dc2626; color:white; font-size:10px; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Seguimiento</a>
+                        </div>
                         <div class="header-copy">
                             <div class="title">Seguimiento de cargas</div>
-                            <p>Vista construida sobre la hoja <strong>Respuestas de formulario 1</strong> del libro Votacion. Muestra las cargas registradas con <strong>Marca temporal</strong>, <strong>Cedula</strong>, <strong>Mesa</strong> y <strong>Orden</strong>.</p>
+                            <p>Vista construida sobre los registros de <strong>Votación</strong>. Muestra las cargas registradas con <strong>Cédula</strong>, <strong>Mesa</strong> y <strong>Orden</strong>.</p>
                             <div class="status-badges">
                                 <span class="badge">Libro: Votacion</span>
-                                <span class="badge">Hoja: Respuestas de formulario 1</span>
+                                <span class="badge">Fuente: API Registros</span>
                                 <span class="badge">${state.ultimaActualizacion ? `Actualizado ${state.ultimaActualizacion.toLocaleTimeString('es-PY')}` : 'Sin actualizar'}</span>
                                 <span class="badge">${state.mensaje || 'Sin datos'}</span>
                             </div>
