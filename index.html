@@ -126,24 +126,37 @@
     // ==================== CARGAR DIRIGENTES ====================
     async function cargarDirigentes() {
       try {
-        const response = await fetch(DIRIGENTES_CSV_URL);
-        const csvText = await response.text();
-        const lineas = csvText.split('\n').filter(l => l.trim());
+        // Intentar cargar desde la API primero (Miembros_mesa)
+        const resp = await fetch(API_URL + '?action=miembros_mesa');
+        const data = await resp.json();
         
-        const dirigentes = [];
-        for (let i = 1; i < lineas.length; i++) {
-          const partes = lineas[i].split(',');
-          if (partes.length >= 2) {
-            const cedula = partes[0].replace(/\./g, '').trim();
-            const nombre = partes[1].trim();
-            if (cedula && nombre) {
-              dirigentes.push({ cedula, nombre });
+        if (data && data.miembros && data.miembros.length > 0) {
+          state.dirigentes = data.miembros.map(m => ({
+            cedula: m.cedula,
+            nombre: m.nombre
+          }));
+          console.log('Miembros de mesa cargados desde API:', state.dirigentes.length);
+        } else {
+          // Fallback: cargar desde CSV
+          const response = await fetch(DIRIGENTES_CSV_URL);
+          const csvText = await response.text();
+          const lineas = csvText.split('\n').filter(l => l.trim());
+          
+          const dirigentes = [];
+          for (let i = 1; i < lineas.length; i++) {
+            const partes = lineas[i].split(',');
+            if (partes.length >= 2) {
+              const cedula = partes[0].replace(/\./g, '').trim();
+              const nombre = partes[1].trim();
+              if (cedula && nombre) {
+                dirigentes.push({ cedula, nombre });
+              }
             }
           }
+          
+          state.dirigentes = dirigentes;
+          console.log('Dirigentes cargados desde CSV:', dirigentes.length);
         }
-        
-        state.dirigentes = dirigentes;
-        console.log('Dirigentes cargados:', dirigentes.length);
       } catch (error) {
         console.error('Error cargando dirigentes:', error);
       }

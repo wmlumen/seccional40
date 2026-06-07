@@ -492,11 +492,14 @@
                 }
                 
                 if (!state.autenticado) {
-                    if (state.dirigentes.length === 0 && !state.cargando) {
-                        cargarDirigentes();
-                        return;
-                    }
+                    // Siempre renderizar el login primero, luego cargar dirigentes en segundo plano
                     app.innerHTML = renderLogin();
+                    
+                    // Si no hay dirigentes cargados y no está cargando, iniciar carga
+                    if (state.dirigentes.length === 0 && !state.cargando) {
+                        console.log('No hay dirigentes, iniciando carga...');
+                        cargarDirigentes();
+                    }
                     return;
                 }
                 

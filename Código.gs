@@ -217,6 +217,22 @@ function doGet(e) {
       return jsonResponse({ dirigentes: dirigentes, total: dirigentes.length });
     }
     
+    if (action === 'miembros_mesa') {
+      const sheet = ss.getSheetByName('Miembros_mesa');
+      if (!sheet || sheet.getLastRow() < 2) {
+        return jsonResponse({ miembros: [], total: 0 });
+      }
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+      const miembros = allData
+        .map(row => ({
+          cedula: String(row[0] || '').replace(/\./g, '').trim(),
+          nombre: String(row[1] || '').trim(),
+          mesa: String(row[2] || '').trim()
+        }))
+        .filter(m => m.cedula && m.nombre);
+      return jsonResponse({ miembros: miembros, total: miembros.length });
+    }
+    
     return jsonResponse({ success: false, error: 'Unknown action' });
     
   } catch (err) {
