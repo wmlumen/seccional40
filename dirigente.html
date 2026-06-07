@@ -253,21 +253,6 @@
             }
             render();
         }
-                }
-                
-                state.dirigentes = dirs;
-                console.log('Dirigentes cargados:', dirs);
-                state.cargando = false;
-                state.mensaje = dirs.length > 0 
-                    ? `Ingrese sus credenciales (${dirs.length} dirigentes cargados)` 
-                    : 'Error: No se cargaron dirigentes. Verifique el CSV.';
-            } catch (error) {
-                console.error('Error:', error);
-                state.cargando = false;
-                state.mensaje = 'Error cargando dirigentes: ' + error.message;
-            }
-            render();
-        }
 
         // ============ REGISTRAR COMUNICACIÓN ============
         function registrarComunicacion() {
