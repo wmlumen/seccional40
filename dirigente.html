@@ -524,7 +524,7 @@
                 }
                 
                 const stats = getEstadisticas();
-            const total = stats.yaVotaron.length + stats.ausentes.length + stats.controversias.length + stats.noVotos.length;
+                const total = stats.yaVotaron.length + stats.ausentes.length + stats.controversias.length + stats.noVotos.length;
             
             app.innerHTML = `
                 <header class="bg-red-900 text-white sticky top-0 z-40 shadow-lg">
@@ -688,6 +688,13 @@
                     </div>
                 </main>
             `;
+        } catch (e) {
+            console.error('Error en render:', e);
+            const app = document.getElementById('app');
+            if (app) {
+                app.innerHTML = '<div style="padding:20px; color:red; text-align:center;">Error al renderizar la página. Recargue.</div>';
+            }
+        }
         }
 
         function renderTablaTodos() {
@@ -699,15 +706,6 @@
             }
             
             return renderTablaVotos(todos, 'slate');
-        }
-
-            } catch (e) {
-                console.error('Error en render:', e);
-                const app = document.getElementById('app');
-                if (app) {
-                    app.innerHTML = '<div style="padding:20px; color:red; text-align:center;">Error al renderizar la página. Recargue.</div>';
-                }
-            }
         }
 
         function renderTablaVotos(votos, color) {
