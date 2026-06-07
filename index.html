@@ -25,6 +25,10 @@
     .grid-mesa { display: grid; gap: 4px; }
     .btn-mesa { aspect-ratio: 1; font-size: 11px; font-weight: 700; border-radius: 6px; transition: all 0.2s; }
     .btn-mesa:hover { transform: scale(1.05); }
+    @media (max-width: 640px) {
+      .grid-mesa { gap: 2px !important; }
+      .btn-mesa { font-size: 9px; border-radius: 3px; }
+    }
   </style>
 </head>
     <body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
@@ -536,7 +540,7 @@
             </div>
             
             <!-- MENÚ DE NAVEGACIÓN -->
-            <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+            <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700 overflow-x-auto whitespace-nowrap">
               <span class="text-[10px] text-red-300 font-bold uppercase mr-2">📍 ${state.escuela || 'Esc. ...'}</span>
               <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
               <a href="index.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Votación</a>
@@ -597,7 +601,7 @@
               </div>
 
               <!-- ESTADISTICAS -->
-              <div class="grid grid-cols-3 gap-3 mb-4">
+              <div class="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-3 mb-4">
                 <div class="bg-white p-4 rounded-[1.5rem] shadow-lg border border-slate-100 text-center">
                   <p class="text-[10px] uppercase font-black text-slate-400 tracking-widest">Electores</p>
                   <span class="text-2xl font-black text-slate-900">${cantidadBotones}</span>
@@ -679,7 +683,7 @@
               <!-- VISTA LISTA -->
               <div class="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden">
                 <div class="max-h-[600px] overflow-y-auto scroll-hidden">
-                  <table class="w-full text-sm">
+                  <table class="w-full text-sm" style="min-width:500px">
                     <thead class="sticky top-0 z-10">
                       <tr class="bg-red-900 text-white">
                         <th class="px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider">#</th>
