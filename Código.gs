@@ -439,6 +439,7 @@ function doGet(e) {
           if (!cedula) continue;
           var mesaVal = parseInt(row[3]) || 0;
           if (filtroMesa && mesaVal !== filtroMesa) continue;
+          var dirAsignado = String(row[9] || '').trim(); // Columna J = DIRIGENTE del Padron
           electores.push({
             secc: String(row[0] || '').trim(),
             num: String(row[1] || '').trim(),
@@ -452,6 +453,7 @@ function doGet(e) {
             estado: 'sin_registro',
             dirigenteCedula: '',
             dirigenteNombre: '',
+            dirigenteAsignado: dirAsignado, // Columna J del Padron
             timestamp: null
           });
         }
@@ -525,10 +527,16 @@ function doGet(e) {
       
       // 5) Filtrar por dirigente si se especificó
       if (filtroDirigente) {
+        // Si el filtro empieza con ASIG_, buscar por dirigente asignado (col J)
+        var esAsignado = filtroDirigente.indexOf('ASIG_') === 0;
+        var filtroValor = esAsignado ? filtroDirigente.substring(5) : filtroDirigente;
         electores = electores.filter(function(e) {
-          var dc = normalizarTexto(e.dirigenteNombre).toLowerCase();
-          return dc.indexOf(filtroDirigente.toLowerCase()) !== -1 ||
-                 normalizarTexto(e.dirigenteCedula).indexOf(filtroDirigente) !== -1;
+          if (esAsignado) {
+            return normalizarTexto(e.dirigenteAsignado).toLowerCase().indexOf(filtroValor.toLowerCase()) !== -1;
+          }
+          var dn = normalizarTexto(e.dirigenteNombre).toLowerCase();
+          return dn.indexOf(filtroValor.toLowerCase()) !== -1 ||
+                 normalizarTexto(e.dirigenteCedula).indexOf(filtroValor) !== -1;
         });
       }
       
@@ -539,6 +547,11 @@ function doGet(e) {
         var dc = electores[i].dirigenteCedula;
         if (dn && dc) {
           dirigentesSet[dc] = dn;
+        }
+        // También agregar dirigentes asignados desde columna J
+        var da = electores[i].dirigenteAsignado;
+        if (da) {
+          dirigentesSet['ASIG_' + da] = '📋 ' + da;
         }
       }
       var dirigentesList = [];

@@ -358,7 +358,7 @@
                                                                 ${e.estado === 'voto' ? 'VOTO' : e.estado === 'no_voto' ? 'NO VOTO' : 'SIN REGISTRO'}
                                                             </span>
                                                         </td>
-                                                        <td class="px-3 py-2 text-xs text-slate-600">${e.dirigenteNombre || '-'}</td>
+                                                        <td class="px-3 py-2 text-xs text-slate-600">${e.dirigenteAsignado || e.dirigenteNombre || '-'}</td>
                                                     </tr>
                                                 `;
                                             }).join('')}
