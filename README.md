@@ -133,7 +133,7 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 
 **URL configurada en todos los archivos:**
 ```javascript
-const API_URL = 'https://script.google.com/macros/s/AKfycby8Fw0HaV7ZS3hGL2lbzjsdPiJsdQcyMPmw9OBB5KFTN-qU3NS4GGR1Q3CMl4mJpNN6vg/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
 ```
 
 **IMPORTANTE:** Después del redeploy, actualizar esta URL en todos los archivos HTML si cambia.
