@@ -9,6 +9,7 @@ Sistema web para control de votación electoral - Seccional 40.
 | 🗳️ **Sistema de Votación** | [https://wmlumen.github.io/seccional40/index.html](https://wmlumen.github.io/seccional40/index.html) |
 | 📊 **Panel de Reporte** | [https://wmlumen.github.io/seccional40/asistencia.html](https://wmlumen.github.io/seccional40/asistencia.html) |
 | 🚫 **No Votos** | [https://wmlumen.github.io/seccional40/No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) |
+| 🚨 **Monitoreo de Anomalías** | [https://wmlumen.github.io/seccional40/anomalias.html](https://wmlumen.github.io/seccional40/anomalias.html) |
 
 ## 📝 Acceso
 
@@ -24,6 +25,11 @@ Sistema web para control de votación electoral - Seccional 40.
 - **Registro de personas que NO votarán** (No_voto.html)
 - Panel de reporte por Mesa y por Dirigente
 - Reporte de No Votos en tiempo real
+- **Monitoreo de anomalías** (anomalias.html): Detecta intervalos voto-a-voto anómalos por mesa
+  - Calcula tiempo promedio entre votos (a partir de 10 votos)
+  - Alerta por votos muy rápidos (< 35% de la media) o muy lentos (> 300% de la media)
+  - Alarma cuando hay 3+ votos rápidos consecutivos
+  - Actualización en tiempo real cada 5 segundos
 - Código QR para transferencia de posta
 - Registro automático a Google Sheets
 
@@ -41,7 +47,7 @@ Sistema web para control de votación electoral - Seccional 40.
 
 ### 2. **Configurar URL del API**
 
-Pegar la URL en **tres archivos**:
+Pegar la URL en **cuatro archivos**:
 
 **`index.html`:**
 ```javascript
@@ -54,6 +60,11 @@ const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
 ```
 
 **`No_voto.html`:**
+```javascript
+const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
+```
+
+**`anomalias.html`:**
 ```javascript
 const API_URL = 'https://script.google.com/macros/s/TU_URL_AQUI/exec';
 ```
