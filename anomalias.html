@@ -27,8 +27,9 @@
     <div id="app"></div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
-        const PASSWORD = 'Paraguay40';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
+        const PASSWORD = 'Paraguay100';
+        const AUTH_SESSION_KEY = 'seccional40_auth';
         const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
         
         // CONFIGURACIÓN DE ANOMALÍAS
@@ -41,7 +42,7 @@
         };
 
         let state = {
-            autenticado: false,
+            autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
             cargando: false,
             votos: [],
             noVotos: [],
@@ -54,10 +55,36 @@
         function login() {
             const input = document.getElementById('passwordInput');
             if (input && input.value === PASSWORD) {
+                sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
                 state.autenticado = true;
                 cargarPadron();
             } else {
                 alert('Contraseña incorrecta.');
+            }
+        }
+
+        function getBackendAccessError() {
+            return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+        }
+
+        async function fetchJsonOrThrow(url, options) {
+            const response = await fetch(url, options);
+            const text = await response.text();
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const trimmed = text.trim().toLowerCase();
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+                throw new Error(getBackendAccessError());
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error('Respuesta invalida del backend.');
             }
         }
 
@@ -111,13 +138,10 @@
             }
             try {
                 // Cargar votos y no_votos en paralelo
-                const [respVotos, respNoVotos] = await Promise.all([
-                    fetch(API_URL + '?action=votos'),
-                    fetch(API_URL + '?action=no_votos')
+                const [dataVotos, dataNoVotos] = await Promise.all([
+                    fetchJsonOrThrow(API_URL + '?action=votos'),
+                    fetchJsonOrThrow(API_URL + '?action=no_votos')
                 ]);
-                
-                const dataVotos = await respVotos.json();
-                const dataNoVotos = await respNoVotos.json();
                 
                 if (dataVotos && dataVotos.registros) {
                     const votos = dataVotos.registros
@@ -142,7 +166,7 @@
                 state.mensaje = `Datos actualizados: ${state.votos.length} votos, ${state.noVotos.length} no-votos`;
             } catch (e) {
                 console.error('Error cargando datos:', e);
-                state.mensaje = 'Error cargando datos del servidor';
+                state.mensaje = e && e.message ? e.message : 'Error cargando datos del servidor';
             }
             render();
         }
@@ -788,7 +812,11 @@
             }
         }, 5000);
 
-        render();
+        if (state.autenticado) {
+            cargarPadron();
+        } else {
+            render();
+        }
     </script>
 </body>
 </html>

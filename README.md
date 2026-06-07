@@ -7,17 +7,16 @@ Sistema web completo para control de votación electoral - Seccional 40.
 | Página | Dirigente | Miembro de Mesa | PC |
 |--------|-----------|-----------------|-----|
 | **index.html** (Votación) | ❌ NO | ✅ SÍ (habilitado) | ❌ NO |
-| **dirigente.html** (Panel Dirigente) | ✅ SÍ | ❌ NO | ❌ NO |
 | **No_voto.html** (Registro No Voto) | ✅ SÍ | ❌ NO | ✅ SÍ |
 | **mesas.html** (Estado Mesas) | ✅ SÍ | ❌ NO | ✅ SÍ |
 | **asistencia.html** (Seguimiento) | ❌ NO | ❌ NO | ✅ SÍ |
 | **anomalias.html** (Monitoreo) | ❌ NO | ❌ NO | ✅ SÍ |
 
-## 🔑 Contraseñas por Rol
+## 🔑 Acceso por Rol
 
-- **Miembro de Mesa:** Cédula + contraseña registrada en hoja `Miembros_mesa` y estado `ACTIVO`
-- **Dirigente:** Cédula + Contraseña (de hoja "Dirigentes")
-- **PC:** `Paraguay40` (accede a No_voto, asistencia, anomalias, mesas)
+- **Miembro de Mesa:** Acceso restringido a operadores habilitados
+- **Dirigente:** Acceso restringido a usuarios habilitados
+- **PC:** Acceso restringido a vistas de monitoreo y soporte
 
 ## 🔗 Enlaces del Proyecto
 
@@ -26,7 +25,6 @@ Sistema web completo para control de votación electoral - Seccional 40.
 | Enlace | Descripción | Acceso |
 |--------|-------------|--------|
 | 🗳️ **Votación** | [index.html](https://wmlumen.github.io/seccional40/index.html) | Sistema principal de votación con 350 botones por mesa |
-| 👤 **Dirigente** | [dirigente.html](https://wmlumen.github.io/seccional40/dirigente.html) | Panel privado de cada dirigente (cédula + contraseña) |
 | 🏛️ **Mesas** | [mesas.html](https://wmlumen.github.io/seccional40/mesas.html) | Vista general de todas las mesas con estadísticas |
 | 🚫 **No Voto** | [No_voto.html](https://wmlumen.github.io/seccional40/No_voto.html) | Registro de personas que no votarán |
 
@@ -39,14 +37,14 @@ Sistema web completo para control de votación electoral - Seccional 40.
 
 ## 📝 Acceso
 
-- **Contraseña General:** `Paraguay40`
-- **Dirigentes:** Cédula + Contraseña (según hoja "Dirigentes")
-- **Panel del Dirigente:** Lee directamente desde la hoja "Dirigentes" del Google Sheet
+- Todas las vistas operan con acceso restringido
+- Las credenciales se administran fuera de esta documentación
+- El panel consulta los datos operativos directamente desde Google Sheets
 
 ## 🔗 Navegación entre Páginas
 
 Todos los archivos incluyen un **menú de navegación** en el header que permite moverse entre:
-- **Colegio:** Votación → Dirigente → Mesas → No Voto
+- **Colegio:** Votación → Mesas → No Voto
 - **PC:** Anomalías → Seguimiento
 
 ## 📊 Funcionalidades por Módulo
@@ -59,15 +57,6 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 - Registro de votos, ausentes y controversias
 - Código QR para transferencia de posta
 - Envía datos a Google Sheets en tiempo real
-
-### 👤 dirigente.html (Panel del Dirigente)
-- **Acceso privado** con cédula y contraseña de la hoja "Dirigentes"
-- Lee directamente desde el Google Sheet (no CSV)
-- Ve solo los votantes que él registró
-- Tabs: Ya Votaron, Ausentes, No Votarán, Controversias, Comunicaciones
-- Registra comunicaciones con notas
-- Registra No Votos directamente
-- Actualiza cada 10 segundos
 
 ### 🏛️ mesas.html (Mesas)
 - Vista general de todas las mesas
@@ -99,22 +88,32 @@ Todos los archivos incluyen un **menú de navegación** en el header que permite
 
 ## ⚙️ Configuración
 
-### 1. **Configurar Google Apps Script**
+### 1. **Configurar Google Apps Script (CRÍTICO)**
 
+⚠️ **Si la API responde con HTML de login de Google, la web app NO está pública.**
+
+**Pasos para redeploy:**
 1. Abrir el editor: `Extensiones` → `Apps Script` en tu Google Sheet
 2. Copiar el código completo de `Código.gs`
 3. Guardar (Ctrl+S)
 4. `Implementar` → `Nueva implementación` → `Aplicación web`
-5. Ejecutar como: Tu cuenta
-6. Acceso: Cualquiera, incluso anónimo
+5. **Ejecutar como:** Tu cuenta
+6. **Quién tiene acceso:** `Cualquiera` o `Cualquiera, incluso anónimo`
 7. **Copiar la URL** generada
+
+**Verificación de publicación:**
+- Abrir en navegador: `https://script.google.com/macros/s/ID/exec?action=test`
+- Si ves **JSON** ✅ → La API está pública y funcionando
+- Si ves **HTML de login de Google** ❌ → La web app NO está pública, repetir pasos 4-6
 
 ### 2. **Configurar URL del API**
 
 **URL configurada en todos los archivos:**
 ```javascript
-const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
 ```
+
+**IMPORTANTE:** Después del redeploy, actualizar esta URL en todos los archivos HTML si cambia.
 
 ## 💾 Estructura de Google Sheets
 
@@ -126,8 +125,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 |------|-----------|----------|
 | **Registros** | Todos los votos marcados | `timestamp`, `cedula`, `nombre`, `mesa`, `orden`, `estado`, `accion`, `dirigente`, `dirigenteNombre`, `origen` |
 | **Resumen** | Estadísticas por mesa | `Mesa`, `Votos`, `Ausentes`, `Controversias`, `Total`, `Participacion %` |
-| **Dirigentes** | Lista de dirigentes con contraseña | `Cédula`, `Nombre`, `Contraseña` |
-| **Miembros_mesa** | Miembros de mesa/veedores | `Cédula`, `Nombre`, `Contraseña`, `Mesa`, `Horario de Inicio`, `Horario de Cierre`, `Estado` |
+| **Dirigentes** | Lista de dirigentes habilitados | `Cédula`, `Nombre`, `Datos operativos` |
+| **Miembros_mesa** | Miembros de mesa/veedores | `Cédula`, `Nombre`, `Datos operativos`, `Mesa`, `Horario de Inicio`, `Horario de Cierre`, `Estado` |
 | **No_voto** | Personas que no votarán | `CEDULA`, `APELLIDO`, `NOMBRE`, `DIRIGENTE`, `No_VOTO` |
 
 ### Endpoints del API
@@ -140,8 +139,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
 | `?action=dirigentes` | Obtener lista de dirigentes desde hoja Dirigentes |
 | `?action=miembros_mesa` | Obtener lista de miembros de mesa desde hoja Miembros_mesa |
 | `?action=miembros_mesa_v2` | Obtener lista normalizada de miembros con estado y horarios |
-| `?action=validar_miembro&cedula=...&password=...` | Validar acceso al `index.html` |
-| `?action=registrar_miembro&cedula=...&nombre=...&password=...&mesa=...&estado=ACTIVO` | Alta/actualización de miembro de mesa |
+| `?action=registrar_miembro&cedula=...&nombre=...&credencial=...&mesa=...&estado=ACTIVO` | Alta/actualización de miembro de mesa |
 | `?action=resumen` | Obtener resumen por mesa |
 | `?action=mesa&mesa=N` | Obtener votos de una mesa específica |
 
@@ -172,7 +170,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xS
     ┌───────────────┼───────────────┐
     │               │               │
 ┌───▼───┐     ┌────▼────┐    ┌────▼───┐
-│ index │     │dirigente│    │No_voto │
+│ index │                 │No_voto │
 │ .html │     │ .html   │    │ .html  │
 │(Miembro│     │(Dirigen)│    │(Dir/PC)│
 └───┬───┘     └────┬────┘    └───┬────┘

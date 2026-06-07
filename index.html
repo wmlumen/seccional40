@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SECCIONAL 40 - Control de VotaciÃ³n</title>
+  <title>SECCIONAL 40 - Control de Votación</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -36,9 +36,9 @@
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
     const DIRIGENTES_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?gid=79263661&single=true&output=csv';
     const MAX_VOTOS = 350;
-    const ACCESS_PASSWORD = 'Paraguay100';
+    const ACCESS_PASSWORD = 'Paraguay40';
     const AUTH_SESSION_KEY = 'seccional40_auth';
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec'; // â† Pegar aquÃ­ la URL del Web App de Google Apps Script (opcional)
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
     
     // ==================== ESTADO ====================
     let state = {
@@ -64,6 +64,10 @@
       return String(valor || '').replace(/[.\s,-]/g, '').trim();
     }
 
+    function getVotoKey(mesa, orden) {
+      return `${mesa || 0}-${orden || 0}`;
+    }
+
     function logout() {
       sessionStorage.removeItem(AUTH_SESSION_KEY);
       state.autenticado = false;
@@ -71,6 +75,31 @@
       state.veedor = 'Coordinacion';
       state.veedorNombre = 'Coordinacion';
       render();
+    }
+
+    function getBackendAccessError() {
+      return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+    }
+
+    async function fetchJsonOrThrow(url, options) {
+      const response = await fetch(url, options);
+      const text = await response.text();
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      const trimmed = text.trim().toLowerCase();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+        throw new Error(getBackendAccessError());
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        throw new Error('Respuesta invalida del backend.');
+      }
     }
 
     function login() {
@@ -98,7 +127,7 @@
     // ==================== CARGAR PADRON DESDE CSV ====================
     async function cargarPadron() {
       state.cargando = true;
-      state.mensaje = 'Cargando padrÃ³n electoral...';
+      state.mensaje = 'Cargando padrón electoral...';
       render();
       
       try {
@@ -131,7 +160,7 @@
         
         state.padron = registros;
         state.cargando = false;
-        state.mensaje = `PadrÃ³n cargado: ${registros.length} electores`;
+        state.mensaje = `Padrón cargado: ${registros.length} electores`;
         
         // Sugerir mesa 1 por defecto
         if (!state.mesaSeleccionada) {
@@ -140,7 +169,7 @@
       } catch (error) {
         console.error('Error cargando padron:', error);
         state.cargando = false;
-        state.mensaje = 'Error cargando padrÃ³n. Reintentando...';
+        state.mensaje = 'Error cargando padrón. Reintentando...';
         // Fallback: reintentar en 3 segundos
         setTimeout(cargarPadron, 3000);
       }
@@ -151,8 +180,7 @@
     async function cargarDirigentes() {
       try {
         // Intentar cargar desde la API primero (Miembros_mesa)
-        const resp = await fetch(API_URL + '?action=miembros_mesa_v2');
-        const data = await resp.json();
+        const data = await fetchJsonOrThrow(API_URL + '?action=miembros_mesa_v2');
         
         if (data && data.miembros && data.miembros.length > 0) {
           state.dirigentes = data.miembros
@@ -224,7 +252,7 @@
         
         // Si la mesa coincide con la seleccionada, mostrar alerta
         if (encontrado.mesa === state.mesaSeleccionada) {
-          // Marcar el botÃ³n correspondiente automÃ¡ticamente
+          // Marcar el botón correspondiente automáticamente
           setTimeout(() => {
             const btn = document.getElementById(`btn-orden-${encontrado.orden}`);
             if (btn) {
@@ -267,22 +295,26 @@
     }
 
     // ==================== MARCAR VOTO ====================
-    function marcarVoto(orden, tipo) {
-      const votoActual = state.votos[orden];
+    function marcarVoto(orden, tipo, mesaObjetivo) {
+      const mesaRegistro = parseInt(mesaObjetivo || state.mesaSeleccionada || 0);
+      const votoKey = getVotoKey(mesaRegistro, orden);
+      const votoActual = state.votos[votoKey];
       let nuevoEstado = {
         tipo: tipo,
         timestamp: Date.now(),
-        dirigente: state.veedor || 'Dirigente'
+        dirigente: state.veedor || 'Dirigente',
+        mesa: mesaRegistro,
+        orden: orden
       };
       
       if (votoActual && votoActual.tipo !== tipo) {
         nuevoEstado.controversia = true;
       }
       
-      state.votos[orden] = nuevoEstado;
+      state.votos[votoKey] = nuevoEstado;
       
       // Registrar en Google Sheets
-      const elector = state.padron.find(p => p.mesa === state.mesaSeleccionada && p.orden === orden);
+      const elector = state.padron.find(p => p.mesa === mesaRegistro && p.orden === orden);
       if (elector) {
         registrarAccion({
           cedula: elector.cedula,
@@ -295,7 +327,7 @@
       }
       
       // Actualizar elector consultado si coincide
-      if (state.consultaResultado && state.consultaResultado.orden === orden) {
+      if (state.consultaResultado && state.consultaResultado.orden === orden && state.consultaResultado.mesa === mesaRegistro) {
         state.consultaResultado.marcado = true;
       }
       render();
@@ -314,7 +346,7 @@
 
     // ==================== ESTADISTICAS ====================
     function calcularStats() {
-      const vals = Object.values(state.votos);
+      const vals = Object.values(state.votos).filter(v => parseInt(v.mesa) === parseInt(state.mesaSeleccionada));
       const totalVotos = vals.length;
       const controversias = vals.filter(v => v.controversia).length;
       const electoresEnMesa = state.padron.filter(p => p.mesa === state.mesaSeleccionada).length;
@@ -325,14 +357,14 @@
     async function registrarAccion(datos) {
       if (!API_URL || API_URL === '') {
         console.warn('API_URL no configurada. Datos no enviados:', datos);
-        state.mensaje = 'âš ï¸ API_URL no configurada';
+        state.mensaje = '⚠️ API_URL no configurada';
         render();
         return;
       }
       try {
         console.log('Enviando datos:', datos);
         
-        // Construir URL con parÃ¡metros (mÃ¡s confiable para GAS)
+        // Construir URL con parámetros (más confiable para GAS)
         var params = new URLSearchParams({
           action: 'registrar',
           timestamp: new Date().toISOString(),
@@ -350,22 +382,20 @@
         var url = API_URL + '?' + params.toString();
         console.log('URL:', url);
         
-        const response = await fetch(url, {
+        const result = await fetchJsonOrThrow(url, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         });
-        
-        const result = await response.json();
         console.log('Respuesta del servidor:', result);
         
         if (!result.success) {
           console.error('Error del servidor:', result.error);
-          state.mensaje = 'âš ï¸ Error: ' + result.error;
+          state.mensaje = '⚠️ Error: ' + result.error;
           render();
         }
       } catch (err) {
         console.error('Error registrando en Sheets:', err);
-        state.mensaje = 'âš ï¸ Error de conexiÃ³n: ' + err.message;
+        state.mensaje = '⚠️ Error de conexión: ' + err.message;
         render();
       }
     }
@@ -424,16 +454,15 @@
               </div>
             </div>
             
-            <!-- MENÃš DE NAVEGACIÃ“N -->
+            <!-- MENÚ DE NAVEGACIÓN -->
             <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
               <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
-              <a href="index.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">VotaciÃ³n</a>
-              <a href="dirigente.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Dirigente</a>
+              <a href="index.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Votación</a>
               <a href="mesas.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Mesas</a>
               <a href="No_voto.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">No Voto</a>
               <span class="text-[10px] text-red-400 mx-1">|</span>
               <span class="text-[10px] text-red-300 font-bold uppercase">PC:</span>
-              <a href="anomalias.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">AnomalÃ­as</a>
+              <a href="anomalias.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Anomalías</a>
               <a href="asistencia.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Seguimiento</a>
             </div>
             
@@ -471,7 +500,7 @@
                 <div class="flex flex-col sm:flex-row gap-3 items-center">
                   <div class="flex-1 relative w-full">
                     <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                    <input type="text" id="cedulaInput" placeholder="IngresÃ¡ cÃ©dula del elector" 
+                    <input type="text" id="cedulaInput" placeholder="Ingresá cédula del elector" 
                       class="w-full pl-12 pr-4 py-3 text-lg font-bold border-2 border-slate-100 rounded-xl focus:border-red-500 focus:outline-none transition-all"
                       onkeypress="if(event.key === 'Enter') buscarCedula()">
                   </div>
@@ -505,7 +534,7 @@
                 <div class="grid-mesa">
                   ${Array.from({ length: cantidadBotones }, (_, i) => {
                     const orden = i + 1;
-                    const voto = state.votos[orden];
+                    const voto = state.votos[getVotoKey(state.mesaSeleccionada, orden)];
                     const elector = electoresMesa.find(e => e.orden === orden);
                     
                     let btnClass = "bg-white text-slate-400 border border-slate-200 hover:border-red-300 hover:text-red-600";
@@ -540,8 +569,8 @@
                 
                 <div class="mt-4 flex flex-wrap gap-3 justify-center text-xs">
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-white border border-slate-200 rounded"></div><span>Sin marcar</span></div>
-                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div><span>En padrÃ³n</span></div>
-                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-500 rounded"></div><span>VotÃ³</span></div>
+                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-50 border border-red-200 rounded"></div><span>En padrón</span></div>
+                  <div class="flex items-center gap-1"><div class="w-4 h-4 bg-red-500 rounded"></div><span>Votó</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-slate-200 rounded"></div><span>Ausente</span></div>
                   <div class="flex items-center gap-1"><div class="w-4 h-4 bg-rose-600 rounded"></div><span>Controversia</span></div>
                 </div>
@@ -567,8 +596,8 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
             </div>
             <div>
-              <p class="font-black text-rose-800 text-sm">CÃ©dula no encontrada</p>
-              <p class="text-xs text-rose-600">${r.cedula} no estÃ¡ en el padrÃ³n</p>
+              <p class="font-black text-rose-800 text-sm">Cédula no encontrada</p>
+              <p class="text-xs text-rose-600">${r.cedula} no está en el padrón</p>
             </div>
           </div>
         `;
@@ -584,17 +613,15 @@
           <div class="flex-1">
             <p class="font-black ${esMesaActual ? 'text-red-800' : 'text-red-800'} text-sm">${r.nombre}</p>
             <div class="flex gap-3 text-xs mt-1">
-              <span class="${esMesaActual ? 'text-red-600' : 'text-red-600'} font-bold">CÃ©dula: ${r.cedula}</span>
+              <span class="${esMesaActual ? 'text-red-600' : 'text-red-600'} font-bold">Cédula: ${r.cedula}</span>
               <span class="font-bold text-slate-500">Mesa: ${r.mesa}</span>
               <span class="font-bold text-slate-500">Orden: ${r.orden}</span>
             </div>
-            ${!esMesaActual ? `<p class="text-xs text-red-700 mt-1 font-bold">âš ï¸ Esta persona vota en la MESA ${r.mesa}, no en esta mesa</p>` : ''}
+            ${!esMesaActual ? `<p class="text-xs text-red-700 mt-1 font-bold">⚠️ Esta persona vota en la MESA ${r.mesa}, no en esta mesa</p>` : ''}
           </div>
-          ${esMesaActual ? `
-            <button onclick="marcarVoto(${r.orden}, 'voto'); state.consultaResultado=null; render();" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition-all">
-              MARCAR VOTO
-            </button>
-          ` : ''}
+          <button onclick="marcarVoto(${r.orden}, 'voto', ${r.mesa}); state.consultaResultado=null; render();" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-xs transition-all">
+            ${esMesaActual ? 'MARCAR VOTO' : 'REGISTRAR EN SU MESA'}
+          </button>
         </div>
       `;
     }
@@ -621,7 +648,7 @@
               <button onclick="marcarVoto(${orden}, 'voto'); state.mostrarOpciones=null; render();" 
                 class="w-full flex items-center justify-center gap-3 p-4 bg-red-50 hover:bg-red-100 border-2 border-red-200 rounded-[1.5rem] transition-all font-black text-red-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-                VOTÃ“
+                VOTÓ
               </button>
               
               <button onclick="marcarVoto(${orden}, 'ausente'); state.mostrarOpciones=null; render();" 

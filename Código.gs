@@ -6,7 +6,7 @@
  * - PadrÃ³n: SECC, NÂ°, LOCAL DE VOTACION, MESA, ORDEN, CEDULA, APELLIDO, NOMBRE, FEC. NAC, DIRIGENTE, VOTO
  * - Dirigentes: CÃ©dula, Dirigente, ContraseÃ±a
  * - Miembros_mesa: CÃ©dula, Dirigente, ContraseÃ±a, MESA, HORARIO DE INICIO, HORARIO DE CIERRE
- * - No_voto: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO
+ * - No_voto: Marca temporal, Cedula, Mesa, Orden, No_voto, Observación
  * - Resumen: Mesa, Votos, Ausentes, Controversias, Total, Participacion %
  * - Registros: timestamp, cedula, nombre, mesa, orden, estado, accion, dirigente, dirigenteNombre, origen
  * 
@@ -23,8 +23,15 @@
 const SHEET_REGISTROS = 'Registros';
 const SHEET_RESUMEN = 'Resumen';
 const SHEET_NO_VOTO = 'No_voto';
+const SHEET_RESPUESTAS = 'Respuestas de formulario 1';
 const SHEET_DIRIGENTES = 'Dirigentes';
 const SHEET_MIEMBROS_MESA = 'Miembros_mesa';
+const SHEET_PENDIENTES_QR = 'Pendientes_QR';
+const SPREADSHEET_ID = '1tDtXxCqV5L70-w5wAXBkb73e3ZKtTu7ni8lJ_AUg73I';
+
+function getTargetSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
 
 function normalizarTexto(valor) {
   return String(valor || '').trim();
@@ -53,6 +60,75 @@ function ensureMiembrosSheet(ss) {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+function ensurePendientesQrSheet(ss) {
+  var sheet = ss.getSheetByName(SHEET_PENDIENTES_QR);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_PENDIENTES_QR);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      'id',
+      'timestamp',
+      'cedula',
+      'nombre',
+      'mesa',
+      'orden',
+      'telefono',
+      'observacion',
+      'estado',
+      'canal',
+      'resueltoAt'
+    ]);
+    sheet.getRange(1, 1, 1, 11)
+      .setFontWeight('bold')
+      .setBackground('#1e3a8a')
+      .setFontColor('#ffffff');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function appendRespuestaFormulario(ss, data) {
+  if ((data.estado || '') !== 'voto') {
+    return;
+  }
+
+  var sheet = ss.getSheetByName(SHEET_RESPUESTAS);
+  if (!sheet) {
+    return;
+  }
+
+  sheet.appendRow([
+    data.timestamp || new Date(),
+    data.cedula || '',
+    data.mesa || '',
+    data.orden || ''
+  ]);
+}
+
+function obtenerPendientesQr(sheet) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return [];
+  }
+  const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 11).getValues();
+  return allData.map(function(row, index) {
+    return {
+      rowNumber: index + 2,
+      id: normalizarTexto(row[0]),
+      timestamp: row[1],
+      cedula: normalizarCedula(row[2]),
+      nombre: normalizarTexto(row[3]),
+      mesa: normalizarTexto(row[4]),
+      orden: normalizarTexto(row[5]),
+      telefono: normalizarTexto(row[6]),
+      observacion: normalizarTexto(row[7]),
+      estado: normalizarTexto(row[8]).toLowerCase() || 'pendiente',
+      canal: normalizarTexto(row[9]) || 'qr',
+      resueltoAt: row[10]
+    };
+  });
 }
 
 function obtenerMiembros(sheet) {
@@ -87,7 +163,7 @@ function doPost(e) {
     Logger.log('=== doPost INICIADO ===');
     Logger.log('Evento recibido: ' + JSON.stringify(e));
     
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = getTargetSpreadsheet();
     var data;
     
     // Intentar obtener datos de postData
@@ -118,7 +194,7 @@ function doPost(e) {
     Logger.log('Es no_voto: ' + esNoVoto);
     
     if (esNoVoto) {
-      // Escribir en la hoja No_voto (columnas: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO)
+      // Escribir en la hoja No_voto (columnas: Marca temporal, Cedula, Mesa, Orden, No_voto, Observación)
       var sheetNoVoto = ss.getSheetByName(SHEET_NO_VOTO);
       if (!sheetNoVoto) {
         Logger.log('ERROR: Hoja No_voto no encontrada');
@@ -126,11 +202,12 @@ function doPost(e) {
       }
       
       var rowNoVoto = [
+        data.timestamp || new Date(),
         data.cedula || '',
-        data.apellido || '',
-        data.nombre || '',
-        data.dirigente || 'Sin dirigente',
-        data.motivo || 'Otro'
+        data.mesa || '',
+        data.orden || '',
+        data.motivo || 'no_voto',
+        data.observacion || ''
       ];
       
       Logger.log('Escribiendo en No_voto: ' + JSON.stringify(rowNoVoto));
@@ -170,6 +247,7 @@ function doPost(e) {
       Logger.log('Escribiendo en Registros: ' + JSON.stringify(rowRegistros));
       sheetRegistros.appendRow(rowRegistros);
       Logger.log('Escrito en fila: ' + sheetRegistros.getLastRow());
+      appendRespuestaFormulario(ss, data);
       
       actualizarResumen(ss);
       
@@ -188,7 +266,7 @@ function doPost(e) {
  */
 function doGet(e) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getTargetSpreadsheet();
     const action = e.parameter.action || 'status';
     
     if (action === 'status') {
@@ -277,19 +355,20 @@ function doGet(e) {
     }
     
     if (action === 'no_votos') {
-      // Leer desde la hoja No_voto (columnas: CEDULA, APELLIDO, NOMBRE, DIRIGENTE, No_VOTO)
+      // Leer desde la hoja No_voto (columnas: Marca temporal, Cedula, Mesa, Orden, No_voto, Observación)
       const sheet = ss.getSheetByName(SHEET_NO_VOTO);
       if (!sheet || sheet.getLastRow() < 2) {
         return jsonResponse({ registros: [], total: 0 });
       }
-      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5).getValues();
+      const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, 6).getValues();
       const registros = allData
         .map(row => ({
-          cedula: row[0],
-          apellido: row[1],
-          nombre: row[2],
-          dirigente: row[3],
-          motivo: row[4]
+          timestamp: row[0],
+          cedula: row[1],
+          mesa: row[2],
+          orden: row[3],
+          motivo: row[4],
+          observacion: row[5]
         }))
         .reverse();
       return jsonResponse({ registros: registros, total: registros.length });
@@ -371,6 +450,108 @@ function doGet(e) {
       sheet.appendRow(row[0]);
       return jsonResponse({ success: true, accion: 'creado', row: sheet.getLastRow() });
     }
+
+    if (action === 'registrar_pendiente_qr') {
+      const cedula = normalizarCedula(e.parameter.cedula);
+      const nombre = normalizarTexto(e.parameter.nombre);
+      const mesa = normalizarTexto(e.parameter.mesa);
+      const orden = normalizarTexto(e.parameter.orden);
+      const telefono = normalizarTexto(e.parameter.telefono);
+      const observacion = normalizarTexto(e.parameter.observacion);
+
+      if (!cedula || !nombre) {
+        return jsonResponse({ success: false, error: 'Cedula y nombre son obligatorios' });
+      }
+
+      const sheet = ensurePendientesQrSheet(ss);
+      const pendientes = obtenerPendientesQr(sheet);
+      const yaPendiente = pendientes.find(function(item) {
+        return item.cedula === cedula && item.estado === 'pendiente';
+      });
+
+      if (yaPendiente) {
+        return jsonResponse({ success: false, error: 'Ya existe una solicitud pendiente para esta cedula' });
+      }
+
+      const id = 'qr_' + new Date().getTime() + '_' + cedula;
+      sheet.appendRow([
+        id,
+        new Date().toISOString(),
+        cedula,
+        nombre,
+        mesa,
+        orden,
+        telefono,
+        observacion,
+        'pendiente',
+        'qr',
+        ''
+      ]);
+
+      return jsonResponse({ success: true, id: id, row: sheet.getLastRow() });
+    }
+
+    if (action === 'pendientes_qr') {
+      const sheet = ensurePendientesQrSheet(ss);
+      const pendientes = obtenerPendientesQr(sheet).reverse();
+      return jsonResponse({ registros: pendientes, total: pendientes.length });
+    }
+
+    if (action === 'aprobar_pendiente_qr') {
+      const id = normalizarTexto(e.parameter.id);
+      if (!id) {
+        return jsonResponse({ success: false, error: 'ID obligatorio' });
+      }
+
+      const sheet = ensurePendientesQrSheet(ss);
+      const pendientes = obtenerPendientesQr(sheet);
+      const pendiente = pendientes.find(function(item) {
+        return item.id === id;
+      });
+
+      if (!pendiente) {
+        return jsonResponse({ success: false, error: 'Solicitud no encontrada' });
+      }
+
+      if (pendiente.estado !== 'pendiente') {
+        return jsonResponse({ success: false, error: 'La solicitud ya fue procesada' });
+      }
+
+      var sheetRegistros = ss.getSheetByName(SHEET_REGISTROS);
+      if (!sheetRegistros) {
+        sheetRegistros = ss.insertSheet(SHEET_REGISTROS);
+        sheetRegistros.appendRow([
+          'timestamp', 'cedula', 'nombre', 'mesa', 'orden', 'estado', 'accion', 'dirigente', 'dirigenteNombre', 'origen'
+        ]);
+        sheetRegistros.getRange(1, 1, 1, 10)
+          .setFontWeight('bold')
+          .setBackground('#1e3a8a')
+          .setFontColor('#ffffff');
+        sheetRegistros.setFrozenRows(1);
+      }
+
+      sheetRegistros.appendRow([
+        new Date().toISOString(),
+        pendiente.cedula,
+        pendiente.nombre,
+        pendiente.mesa,
+        pendiente.orden,
+        'voto',
+        'aprobar_qr',
+        'Panel QR',
+        'Panel QR',
+        'qr'
+      ]);
+
+      sheet.getRange(pendiente.rowNumber, 9, 1, 3).setValues([[
+        'aprobado',
+        pendiente.canal,
+        new Date().toISOString()
+      ]]);
+
+      actualizarResumen(ss);
+      return jsonResponse({ success: true, id: id, tipo: 'aprobado' });
+    }
     
     if (action === 'miembros_mesa') {
       const sheet = ensureMiembrosSheet(ss);
@@ -395,11 +576,12 @@ function doGet(e) {
         }
         
         var rowNoVoto = [
+          data.timestamp || new Date(),
           data.cedula || '',
-          data.apellido || '',
-          data.nombre || '',
-          data.dirigente || 'Sin dirigente',
-          data.motivo || 'Otro'
+          data.mesa || '',
+          data.orden || '',
+          data.motivo || 'no_voto',
+          data.observacion || ''
         ];
         
         sheetNoVoto.appendRow(rowNoVoto);
@@ -427,6 +609,7 @@ function doGet(e) {
         ];
         
         sheetRegistros.appendRow(rowRegistros);
+        appendRespuestaFormulario(ss, data);
         actualizarResumen(ss);
         return jsonResponse({ success: true, row: sheetRegistros.getLastRow(), tipo: 'registro' });
       }
@@ -490,7 +673,7 @@ function actualizarResumen(ss) {
  * Actualiza el resumen sin necesidad de trigger manual
  */
 function onOpen() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getTargetSpreadsheet();
   actualizarResumen(ss);
 }
 

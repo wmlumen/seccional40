@@ -18,11 +18,12 @@
 
     <script>
         const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
-        const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
-        const PASSWORD = 'Paraguay40';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
+        const PASSWORD = 'Paraguay100';
+        const AUTH_SESSION_KEY = 'seccional40_auth';
         
         let state = {
-            autenticado: false,
+            autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
             cargando: false,
             padron: [],
             mesas: {},
@@ -35,10 +36,36 @@
         function login() {
             const input = document.getElementById('passwordInput');
             if (input && input.value === PASSWORD) {
+                sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
                 state.autenticado = true;
                 cargarDatos();
             } else {
                 alert('Contraseña incorrecta.');
+            }
+        }
+
+        function getBackendAccessError() {
+            return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+        }
+
+        async function fetchJsonOrThrow(url, options) {
+            const response = await fetch(url, options);
+            const text = await response.text();
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const trimmed = text.trim().toLowerCase();
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+                throw new Error(getBackendAccessError());
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error('Respuesta invalida del backend.');
             }
         }
 
@@ -48,11 +75,9 @@
             render();
             
             try {
-                const [padronResp, votosResp, miembrosResp] = await Promise.all([
-                    fetch(PADRON_CSV_URL),
-                    fetch(API_URL + '?action=votos'),
-                    fetch(API_URL + '?action=miembros_mesa_v2')
-                ]);
+                const padronResp = await fetch(PADRON_CSV_URL);
+                const votosResp = { json: async () => fetchJsonOrThrow(API_URL + '?action=votos') };
+                const miembrosResp = { json: async () => fetchJsonOrThrow(API_URL + '?action=miembros_mesa_v2') };
                 
                 const padronText = await padronResp.text();
                 const lineas = padronText.split('\n').filter(l => l.trim());
@@ -77,7 +102,9 @@
                             mesasData[mesa] = {
                                 mesa: mesa,
                                 electores: [],
-                                totalElectores: 0
+                                totalElectores: 0,
+                                votos: 0,
+                                participacion: 0
                             };
                         }
                         mesasData[mesa].electores.push(elector);
@@ -111,7 +138,7 @@
             } catch (error) {
                 console.error('Error:', error);
                 state.cargando = false;
-                state.mensaje = 'Error cargando datos';
+                state.mensaje = error && error.message ? error.message : 'Error cargando datos';
             }
             render();
         }
@@ -143,8 +170,7 @@
                     mesa: mesa,
                     estado: estado
                 });
-                const response = await fetch(API_URL + '?' + params.toString());
-                const result = await response.json();
+                const result = await fetchJsonOrThrow(API_URL + '?' + params.toString());
 
                 if (!result.success) {
                     alert(result.error || 'No se pudo guardar el miembro.');
@@ -160,7 +186,7 @@
                 await cargarDatos();
             } catch (error) {
                 console.error('Error guardando miembro:', error);
-                alert('Error guardando miembro de mesa.');
+                alert(error && error.message ? error.message : 'Error guardando miembro de mesa.');
             }
         }
 
@@ -219,7 +245,6 @@
                         <div class="flex items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
                           <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
                           <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
-                          <a href="dirigente.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Dirigente</a>
                           <a href="mesas.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Mesas</a>
                           <a href="No_voto.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">No Voto</a>
                           <span class="text-[10px] text-red-400 mx-1">|</span>
@@ -398,7 +423,11 @@
             }
         }, 30000);
 
-        render();
+        if (state.autenticado) {
+            cargarDatos();
+        } else {
+            render();
+        }
     </script>
 </body>
 </html>

@@ -18,11 +18,12 @@
 
     <script>
         const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
-        const API_URL = 'https://script.google.com/macros/s/AKfycbz8Eu5eNcfNFH6mttWCV1xSx-SJpCzjNTQrhjYIv8amIo3ptfOjatuDJglN455t7LBYwQ/exec';
-        const PASSWORD = 'Paraguay40';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxnReysHMqJ0T3HBCol1seKAAR_DFama04H4ulRkqXVx7Tb4lqfb96CNou2p9lB-dn8rw/exec';
+        const PASSWORD = 'Paraguay100';
+        const AUTH_SESSION_KEY = 'seccional40_auth';
         
         let state = {
-            autenticado: false,
+            autenticado: sessionStorage.getItem(AUTH_SESSION_KEY) === 'ok',
             cargando: false,
             padron: [],
             consultaResultado: null,
@@ -32,10 +33,36 @@
         function login() {
             const input = document.getElementById('passwordInput');
             if (input && input.value === PASSWORD) {
+                sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
                 state.autenticado = true;
                 cargarPadron();
             } else {
                 alert('Contraseña incorrecta.');
+            }
+        }
+
+        function getBackendAccessError() {
+            return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+        }
+
+        async function fetchJsonOrThrow(url, options) {
+            const response = await fetch(url, options);
+            const text = await response.text();
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const trimmed = text.trim().toLowerCase();
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+                throw new Error(getBackendAccessError());
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error('Respuesta invalida del backend.');
             }
         }
 
@@ -123,21 +150,15 @@
             const observacionInput = document.getElementById('observacionInput');
             const motivo = motivoSelect ? motivoSelect.value : 'Otro';
             const observacion = observacionInput ? observacionInput.value.trim() : '';
-            const dirigente = state.consultaResultado.dirigente || 'Sin dirigente';
-            
-            // Extraer apellido y nombre del nombre completo
             const nombreCompleto = state.consultaResultado.nombre || '';
-            const partesNombre = nombreCompleto.split(' ');
-            const apellido = partesNombre.length > 1 ? partesNombre[0] : '';
-            const nombre = partesNombre.length > 1 ? partesNombre.slice(1).join(' ') : nombreCompleto;
             
             const data = {
                 estado: 'no_voto',
                 cedula: state.consultaResultado.cedula,
-                apellido: apellido,
-                nombre: nombre,
-                dirigente: dirigente,
-                motivo: motivo
+                mesa: state.consultaResultado.mesa || '',
+                orden: state.consultaResultado.orden || '',
+                motivo: 'no_voto',
+                observacion: observacion || motivo
             };
             
             // Enviar a Google Sheets
@@ -150,25 +171,23 @@
                         action: 'registrar',
                         estado: 'no_voto',
                         cedula: data.cedula,
-                        apellido: data.apellido,
-                        nombre: data.nombre,
-                        dirigente: data.dirigente,
-                        motivo: data.motivo
+                        mesa: data.mesa,
+                        orden: data.orden,
+                        motivo: data.motivo,
+                        observacion: data.observacion
                     });
                     
                     var url = API_URL + '?' + params.toString();
                     console.log('URL:', url);
                     
-                    const response = await fetch(url, {
+                    const result = await fetchJsonOrThrow(url, {
                         method: 'GET',
                         headers: { 'Accept': 'application/json' }
                     });
-                    
-                    const result = await response.json();
                     console.log('Respuesta:', result);
                     
                     if (result.success) {
-                        state.mensaje = `✅ Registrado: ${nombreCompleto} - Motivo: ${motivo}`;
+                        state.mensaje = `✅ Registrado: ${nombreCompleto}`;
                     } else {
                         state.mensaje = `⚠️ Error: ${result.error}`;
                     }
@@ -336,7 +355,11 @@
             `;
         }
 
-        render();
+        if (state.autenticado) {
+            cargarPadron();
+        } else {
+            render();
+        }
     </script>
 </body>
 </html>
