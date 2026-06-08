@@ -200,6 +200,19 @@ function doPost(e) {
     if (action === 'registrar_pendiente_qr') {
       return handleRegistrarPendienteQr(ss, data);
     }
+
+    if (action === 'rechazar_pendiente_qr') {
+      const sheet = ss.getSheetByName(SHEET_PENDIENTES_QR);
+      if (!sheet) return jsonResponse({ success: false, error: 'Hoja no encontrada' });
+      const id = normalizarTexto(data.id);
+      if (!id) return jsonResponse({ success: false, error: 'ID obligatorio' });
+      const pendientes = obtenerPendientesQr(ensurePendientesQrSheet(ss));
+      const pendiente = pendientes.find(function(p) { return p.id === id; });
+      if (!pendiente) return jsonResponse({ success: false, error: 'Solicitud no encontrada' });
+      if (pendiente.estado !== 'pendiente') return jsonResponse({ success: false, error: 'Ya fue procesada' });
+      sheet.getRange(pendiente.rowNumber, 9, 1, 3).setValues([['rechazado', pendiente.canal, new Date().toISOString()]]);
+      return jsonResponse({ success: true, id: id, tipo: 'rechazado' });
+    }
     
     // --- REGISTRO DE VOTO / NO VOTO (default) ---
     var esNoVoto = data.estado === 'no_voto' || data.action === 'no_voto';
@@ -815,6 +828,20 @@ function doGet(e) {
       return jsonResponse({ success: true, id: id, tipo: 'aprobado' });
     }
     
+    if (action === 'rechazar_pendiente_qr') {
+      const id = normalizarTexto(e.parameter.id);
+      if (!id) return jsonResponse({ success: false, error: 'ID obligatorio' });
+
+      const sheet = ensurePendientesQrSheet(ss);
+      const pendientes = obtenerPendientesQr(sheet);
+      const pendiente = pendientes.find(function(item) { return item.id === id; });
+      if (!pendiente) return jsonResponse({ success: false, error: 'Solicitud no encontrada' });
+      if (pendiente.estado !== 'pendiente') return jsonResponse({ success: false, error: 'La solicitud ya fue procesada' });
+
+      sheet.getRange(pendiente.rowNumber, 9, 1, 3).setValues([['rechazado', pendiente.canal, new Date().toISOString()]]);
+      return jsonResponse({ success: true, id: id, tipo: 'rechazado' });
+    }
+
     if (action === 'miembros_mesa') {
       const sheet = ensureMiembrosSheet(ss);
       if (!sheet || sheet.getLastRow() < 2) {
