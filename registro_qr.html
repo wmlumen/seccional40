@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SECCIONAL 40 - Registro QR</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <style>
+    <style>
     body { font-family: 'Inter', sans-serif; }
+    .qr-img { image-rendering: pixelated; }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100">
@@ -21,16 +23,30 @@
 
       <div class="bg-red-50 border border-red-100 rounded-[1.5rem] p-4 mb-6 text-center">
         <p class="text-xs font-black uppercase tracking-[0.2em] text-red-700 mb-3">QR de acceso</p>
-        <img id="qrPreview" alt="QR de registro" class="w-40 h-40 mx-auto rounded-2xl bg-white p-3 border border-red-100 shadow-sm">
-        <p class="text-xs text-slate-500 mt-3">Este es el QR que puede compartir para abrir este formulario.</p>
+        <img id="qrPreview" alt="QR de registro" class="w-40 h-40 mx-auto rounded-2xl bg-white p-3 border border-red-100 shadow-sm qr-img">
+        <p class="text-xs text-slate-500 mt-3">Escanee este código QR para acceder al formulario desde su celular.</p>
       </div>
 
       <div id="alerta" class="hidden rounded-2xl px-4 py-3 text-sm font-bold mb-4"></div>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Cédula</label>
-          <input id="cedulaInput" type="text" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-red-500 focus:outline-none font-bold" placeholder="Ingrese su cédula">
+          <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Cédula <span class="text-red-500">*</span></label>
+          <div class="flex gap-2">
+            <input id="cedulaInput" type="text" class="flex-1 px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-red-500 focus:outline-none font-bold" placeholder="Ingrese su cédula" oninput="buscarEnPadron(this.value)">
+            <button id="btnBuscar" onclick="buscarEnPadron(document.getElementById('cedulaInput').value)" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 border-2 border-slate-200 rounded-xl font-bold text-sm" title="Buscar en padrón">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+          <p id="electorInfo" class="text-xs text-slate-400 mt-1 hidden"></p>
+        </div>
+        <div id="nombreGroup" class="hidden">
+          <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre completo <span class="text-red-500">*</span></label>
+          <input id="nombreInput" type="text" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-red-500 focus:outline-none font-bold" placeholder="Nombre y apellido">
+        </div>
+        <div id="mesaGroup" class="hidden">
+          <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Mesa</label>
+          <input id="mesaInput" type="text" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-red-500 focus:outline-none font-bold" placeholder="N° de mesa">
         </div>
         <div>
           <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Teléfono</label>
@@ -49,10 +65,19 @@
 
   <script>
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXsjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
     let padron = [];
     let cargando = false;
+    let electorEncontrado = null;
 
+    // ===== QR =====
+    function generarQR() {
+      const url = window.location.href;
+      const img = document.getElementById('qrPreview');
+      img.src = 'https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=' + encodeURIComponent(url);
+    }
+
+    // ===== UI HELPERS =====
     function mostrarAlerta(texto, tipo) {
       const alerta = document.getElementById('alerta');
       alerta.textContent = texto;
@@ -86,6 +111,7 @@
       }
     }
 
+    // ===== PADRÓN =====
     async function cargarPadron() {
       const response = await fetch(PADRON_CSV_URL);
       const csvText = await response.text();
@@ -102,6 +128,123 @@
             nombre: (partes[7] || '').trim(),
             nombreCompleto: ((partes[6] || '').trim() + ' ' + (partes[7] || '').trim()).trim()
           });
+        }
+      }
+      padron = registros;
+    }
+
+    function buscarEnPadron(cedulaRaw) {
+      const cedula = cedulaRaw.replace(/\D/g, '');
+      const info = document.getElementById('electorInfo');
+      const nombreGroup = document.getElementById('nombreGroup');
+      const mesaGroup = document.getElementById('mesaGroup');
+
+      if (!cedula) {
+        info.classList.add('hidden');
+        nombreGroup.classList.add('hidden');
+        mesaGroup.classList.add('hidden');
+        electorEncontrado = null;
+        return;
+      }
+
+      const elector = padron.find(p => p.cedula === cedula);
+      if (elector) {
+        electorEncontrado = elector;
+        document.getElementById('nombreInput').value = elector.nombreCompleto;
+        document.getElementById('mesaInput').value = elector.mesa;
+        info.textContent = '✅ ' + elector.nombreCompleto + ' · Mesa ' + elector.mesa + ' · Orden ' + elector.orden;
+        info.className = 'text-xs text-green-600 mt-1 font-bold';
+        info.classList.remove('hidden');
+        nombreGroup.classList.add('hidden');
+        mesaGroup.classList.add('hidden');
+      } else {
+        electorEncontrado = null;
+        info.textContent = '⚠️ No encontrado en el padrón. Complete los datos manualmente.';
+        info.className = 'text-xs text-amber-600 mt-1 font-bold';
+        info.classList.remove('hidden');
+        nombreGroup.classList.remove('hidden');
+        mesaGroup.classList.remove('hidden');
+      }
+    }
+
+    // ===== REGISTRO =====
+    async function registrarSolicitud() {
+      const btn = document.querySelector('button');
+      if (cargando) return;
+      
+      const cedula = (document.getElementById('cedulaInput').value || '').replace(/\D/g, '');
+      const nombre = electorEncontrado
+        ? electorEncontrado.nombreCompleto
+        : (document.getElementById('nombreInput').value || '').trim();
+      const mesa = electorEncontrado
+        ? electorEncontrado.mesa
+        : (document.getElementById('mesaInput').value || '').trim();
+      const orden = electorEncontrado ? electorEncontrado.orden : '';
+      const telefono = (document.getElementById('telefonoInput').value || '').trim();
+      const observacion = (document.getElementById('observacionInput').value || '').trim();
+
+      if (!cedula) {
+        mostrarAlerta('Ingrese una cédula válida.', 'error');
+        return;
+      }
+
+      if (!nombre) {
+        mostrarAlerta('Ingrese el nombre completo.', 'error');
+        return;
+      }
+
+      if (!electorEncontrado && !mesa) {
+        mostrarAlerta('Ingrese el número de mesa.', 'error');
+        return;
+      }
+
+      cargando = true;
+      btn.textContent = 'ENVIANDO...';
+      btn.disabled = true;
+
+      try {
+        const result = await fetchJsonOrThrow(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'registrar_pendiente_qr',
+            cedula: cedula,
+            nombre: nombre,
+            mesa: mesa,
+            orden: orden,
+            telefono: telefono,
+            observacion: observacion
+          })
+        });
+        if (!result.success) {
+          mostrarAlerta(result.error || 'No se pudo registrar la solicitud.', 'error');
+          return;
+        }
+
+        mostrarAlerta('✅ Solicitud enviada. Espere la aprobación desde el panel principal.', 'ok');
+        document.getElementById('cedulaInput').value = '';
+        document.getElementById('telefonoInput').value = '';
+        document.getElementById('observacionInput').value = '';
+        document.getElementById('nombreInput').value = '';
+        document.getElementById('mesaInput').value = '';
+        document.getElementById('electorInfo').classList.add('hidden');
+        document.getElementById('nombreGroup').classList.add('hidden');
+        document.getElementById('mesaGroup').classList.add('hidden');
+        electorEncontrado = null;
+      } catch (error) {
+        mostrarAlerta('Error de conexión con el servidor.', 'error');
+      } finally {
+        cargando = false;
+        btn.textContent = 'ENVIAR SOLICITUD';
+        btn.disabled = false;
+      }
+    }
+
+    // ===== INIT =====
+    generarQR();
+    cargarPadron().catch(() => {
+      mostrarAlerta('No se pudo cargar el padrón. Complete los datos manualmente.', 'error');
+    });
         }
       }
       padron = registros;
