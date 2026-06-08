@@ -33,6 +33,8 @@
             padron: [],
             mesas: {},
             votos: [],
+            ausentes: 0,
+            controversias: 0,
             miembros: [],
             ultimaActualizacion: null,
             mensaje: ''
@@ -88,9 +90,11 @@
             render();
             
             try {
-                const padronResp = await fetch(PADRON_CSV_URL);
-                const votosResp = { json: async () => fetchJsonOrThrow(API_URL + '?action=votos') };
-                const miembrosResp = { json: async () => fetchJsonOrThrow(API_URL + '?action=miembros_mesa_v2') };
+                const [padronResp, votosData, miembrosData] = await Promise.all([
+                    fetch(PADRON_CSV_URL),
+                    fetchJsonOrThrow(API_URL + '?action=votos'),
+                    fetchJsonOrThrow(API_URL + '?action=miembros_mesa_v2')
+                ]);
                 
                 const padronText = await padronResp.text();
                 const lineas = padronText.split('\n').filter(l => l.trim());
@@ -117,6 +121,8 @@
                                 electores: [],
                                 totalElectores: 0,
                                 votos: 0,
+                                ausentes: 0,
+                                controversias: 0,
                                 participacion: 0
                             };
                         }
@@ -127,27 +133,28 @@
                 
                 state.padron = padronData;
                 
-                // Calcular estadísticas por mesa
-                const votosData = await votosResp.json();
+                // Calcular estadísticas por mesa con todos los estados
                 if (votosData && votosData.registros) {
                     state.votos = votosData.registros.filter(r => r.estado === 'voto');
+                    state.ausentes = votosData.registros.filter(r => r.estado === 'ausente').length;
+                    state.controversias = votosData.registros.filter(r => r.estado === 'controversia').length;
                     
-                    // Contar votos por mesa
                     Object.keys(mesasData).forEach(mesaNum => {
                         const mesa = mesasData[mesaNum];
-                        const votosMesa = state.votos.filter(v => parseInt(v.mesa) === parseInt(mesaNum));
-                        mesa.votos = votosMesa.length;
-                        mesa.participacion = mesa.totalElectores > 0 ? ((votosMesa.length / mesa.totalElectores) * 100).toFixed(1) : 0;
+                        const registrosMesa = votosData.registros.filter(v => parseInt(v.mesa) === parseInt(mesaNum));
+                        mesa.votos = registrosMesa.filter(r => r.estado === 'voto').length;
+                        mesa.ausentes = registrosMesa.filter(r => r.estado === 'ausente').length;
+                        mesa.controversias = registrosMesa.filter(r => r.estado === 'controversia').length;
+                        const totalRegistros = registrosMesa.length;
+                        mesa.participacion = mesa.totalElectores > 0 ? ((totalRegistros / mesa.totalElectores) * 100).toFixed(1) : 0;
                     });
                 }
 
-                const miembrosData = await miembrosResp.json();
                 state.miembros = miembrosData && miembrosData.miembros ? miembrosData.miembros : [];
-                
                 state.mesas = mesasData;
                 state.ultimaActualizacion = new Date();
                 state.cargando = false;
-                state.mensaje = `Datos cargados: ${padronData.length} electores en ${Object.keys(mesasData).length} mesas`;
+                state.mensaje = `✅ ${padronData.length} electores · ${Object.keys(mesasData).length} mesas · ${state.votos.length} votos · ${state.ausentes} ausentes · ${state.controversias} controversias`;
             } catch (error) {
                 console.error('Error:', error);
                 state.cargando = false;
@@ -286,21 +293,29 @@
 
                 <main class="max-w-7xl mx-auto p-4 md:p-6">
                     <!-- RESUMEN GENERAL -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-100 text-center">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-1">Total Mesas</div>
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-slate-100 text-center">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Mesas</div>
                             <div class="text-3xl font-black text-slate-900">${totalMesas}</div>
                         </div>
-                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-100 text-center">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-1">Total Electores</div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-slate-100 text-center">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Electores</div>
                             <div class="text-3xl font-black text-slate-900">${totalElectores}</div>
                         </div>
-                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-100 text-center">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-1">Votos Registrados</div>
-                            <div class="text-3xl font-black text-red-600">${totalVotos}</div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-green-200 text-center">
+                            <div class="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">Votos</div>
+                            <div class="text-3xl font-black text-green-600">${totalVotos}</div>
                         </div>
-                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-100 text-center">
-                            <div class="text-xs font-bold text-slate-500 uppercase mb-1">Participación</div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-orange-200 text-center">
+                            <div class="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Ausentes</div>
+                            <div class="text-3xl font-black text-orange-600">${state.ausentes}</div>
+                        </div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-red-200 text-center">
+                            <div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Controversias</div>
+                            <div class="text-3xl font-black text-red-600">${state.controversias}</div>
+                        </div>
+                        <div class="bg-white rounded-[2rem] p-4 shadow-lg border border-slate-100 text-center">
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Participación</div>
                             <div class="text-3xl font-black ${totalElectores > 0 ? (totalVotos/totalElectores*100) > 50 ? 'text-green-600' : 'text-red-600' : 'text-slate-900'}">${totalElectores > 0 ? ((totalVotos/totalElectores)*100).toFixed(1) : 0}%</div>
                         </div>
                     </div>
@@ -391,15 +406,23 @@
                                         </div>
                                         <div class="grid grid-cols-2 gap-2 text-xs mb-2">
                                             <div>
-                                                <p class="text-slate-500 font-bold uppercase text-[10px]">Electores</p>
+                                                <p class="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Electores</p>
                                                 <p class="font-black text-slate-900 text-sm">${m.totalElectores}</p>
                                             </div>
                                             <div>
-                                                <p class="text-slate-500 font-bold uppercase text-[10px]">Votos</p>
-                                                <p class="font-black text-red-600 text-sm">${m.votos || 0}</p>
+                                                <p class="text-green-600 font-bold uppercase text-[9px] tracking-wider">Votos</p>
+                                                <p class="font-black text-green-600 text-sm">${m.votos || 0}</p>
                                             </div>
                                             <div>
-                                                <p class="text-slate-500 font-bold uppercase text-[10px]">Participación</p>
+                                                <p class="text-orange-600 font-bold uppercase text-[9px] tracking-wider">Ausentes</p>
+                                                <p class="font-black text-orange-600 text-sm">${m.ausentes || 0}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-red-600 font-bold uppercase text-[9px] tracking-wider">Controv.</p>
+                                                <p class="font-black text-red-600 text-sm">${m.controversias || 0}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Particip.</p>
                                                 <p class="font-black ${color} text-sm">${porcentaje}%</p>
                                             </div>
                                         </div>
@@ -418,12 +441,14 @@
                             <table class="w-full text-sm">
                                 <thead>
                                     <tr class="bg-red-50">
-                                        <th class="px-4 py-3 text-left font-bold text-red-900">Mesa</th>
-                                        <th class="px-4 py-3 text-center font-bold text-red-900">Electores</th>
-                                        <th class="px-4 py-3 text-center font-bold text-red-900">Votos</th>
-                                        <th class="px-4 py-3 text-center font-bold text-red-900">Participación</th>
-                                        <th class="px-4 py-3 text-center font-bold text-red-900">Progreso</th>
-                                        <th class="px-4 py-3 text-center font-bold text-red-900">Estado</th>
+                                        <th class="px-4 py-3 text-left font-bold text-red-900 text-[10px] uppercase tracking-wider">Mesa</th>
+                                        <th class="px-4 py-3 text-center font-bold text-red-900 text-[10px] uppercase tracking-wider">Electores</th>
+                                        <th class="px-4 py-3 text-center font-bold text-green-700 text-[10px] uppercase tracking-wider">Votos</th>
+                                        <th class="px-4 py-3 text-center font-bold text-orange-700 text-[10px] uppercase tracking-wider">Ausentes</th>
+                                        <th class="px-4 py-3 text-center font-bold text-red-700 text-[10px] uppercase tracking-wider">Controv.</th>
+                                        <th class="px-4 py-3 text-center font-bold text-red-900 text-[10px] uppercase tracking-wider">Particip.</th>
+                                        <th class="px-4 py-3 text-center font-bold text-red-900 text-[10px] uppercase tracking-wider">Progreso</th>
+                                        <th class="px-4 py-3 text-center font-bold text-red-900 text-[10px] uppercase tracking-wider">Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -441,7 +466,9 @@
                                                     </div>
                                                 </td>
                                                 <td class="px-4 py-3 text-center font-bold text-slate-900">${m.totalElectores}</td>
-                                                <td class="px-4 py-3 text-center font-bold text-red-600">${m.votos || 0}</td>
+                                                <td class="px-4 py-3 text-center font-bold text-green-600">${m.votos || 0}</td>
+                                                <td class="px-4 py-3 text-center font-bold text-orange-600">${m.ausentes || 0}</td>
+                                                <td class="px-4 py-3 text-center font-bold text-red-600">${m.controversias || 0}</td>
                                                 <td class="px-4 py-3 text-center font-black ${color}">${porcentaje}%</td>
                                                 <td class="px-4 py-3">
                                                     <div class="w-full h-3 bg-red-100 rounded-full overflow-hidden">
@@ -462,7 +489,7 @@
                     <!-- GRÁFICO DE BARRAS + LÍNEA -->
                     <div class="bg-white rounded-[2rem] shadow-xl border border-red-100 p-4 md:p-6 mb-6">
                         <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight mb-4">
-                            <i class="fas fa-chart-bar text-red-600 mr-2"></i>Electores y Votos por Mesa
+                            <i class="fas fa-chart-bar text-red-600 mr-2"></i>Electores · Votos · Ausentes · Controversias
                         </h2>
                         <div class="relative h-[250px] md:h-[400px]">
                             <canvas id="chartMesas"></canvas>
@@ -490,6 +517,9 @@
             const votosData = mesasArray.map(m => m.votos || 0);
             const participacionData = mesasArray.map(m => parseFloat(m.participacion) || 0);
             
+            const ausentesData = mesasArray.map(m => m.ausentes || 0);
+            const controversiasData = mesasArray.map(m => m.controversias || 0);
+
             window._chartInstance = new Chart(canvas, {
                 type: 'bar',
                 data: {
@@ -498,8 +528,8 @@
                         {
                             label: 'Electores',
                             data: electoresData,
-                            backgroundColor: 'rgba(220, 38, 38, 0.15)',
-                            borderColor: 'rgba(220, 38, 38, 0.6)',
+                            backgroundColor: 'rgba(100, 116, 139, 0.15)',
+                            borderColor: 'rgba(100, 116, 139, 0.4)',
                             borderWidth: 1,
                             borderRadius: 4,
                             yAxisID: 'yElectores'
@@ -507,8 +537,26 @@
                         {
                             label: 'Votos',
                             data: votosData,
-                            backgroundColor: 'rgba(220, 38, 38, 0.6)',
-                            borderColor: 'rgba(220, 38, 38, 0.9)',
+                            backgroundColor: 'rgba(22, 163, 74, 0.6)',
+                            borderColor: 'rgba(22, 163, 74, 0.9)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            yAxisID: 'yElectores'
+                        },
+                        {
+                            label: 'Ausentes',
+                            data: ausentesData,
+                            backgroundColor: 'rgba(234, 88, 12, 0.4)',
+                            borderColor: 'rgba(234, 88, 12, 0.7)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            yAxisID: 'yElectores'
+                        },
+                        {
+                            label: 'Controversias',
+                            data: controversiasData,
+                            backgroundColor: 'rgba(220, 38, 38, 0.3)',
+                            borderColor: 'rgba(220, 38, 38, 0.6)',
                             borderWidth: 1,
                             borderRadius: 4,
                             yAxisID: 'yElectores'
@@ -517,9 +565,9 @@
                             label: 'Participación %',
                             data: participacionData,
                             type: 'line',
-                            borderColor: '#ea580c',
-                            backgroundColor: 'rgba(234, 88, 12, 0.1)',
-                            pointBackgroundColor: '#ea580c',
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                            pointBackgroundColor: '#2563eb',
                             pointBorderColor: '#fff',
                             pointBorderWidth: 2,
                             pointRadius: 5,
