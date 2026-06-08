@@ -124,7 +124,19 @@
         vac: 0
       },
       editMode: false,
-      vista: 'certificado' // 'certificado' | 'contraste'
+      vista: 'certificado', // 'certificado' | 'contraste' | 'general'
+      // Totales generales (todas las mesas)
+      general: {
+        mesasInstaladas: 0,
+        mesasProcesadas: 0,
+        votosSistema: 0,
+        votosLista2: 0,
+        votosLista7: 0,
+        votosLista300: 0,
+        nulos: 0,
+        blanco: 0,
+        vac: 0
+      }
     };
 
     AGRUPACIONES.forEach(a => { state.escrutinio.votos[a.nro] = 0; });
@@ -202,6 +214,17 @@
           const mesaData = resumenData.mesas.find(m => parseInt(m.mesa) === state.mesa);
           state.totalVotosSistema = mesaData ? (parseInt(mesaData.votos) || 0) : 0;
           state.totalRegistros = mesaData ? (parseInt(mesaData.total) || 0) : 0;
+
+          // Totales generales
+          let totalVotos = 0;
+          let totalProc = 0;
+          for (const m of resumenData.mesas) {
+            totalVotos += parseInt(m.votos) || 0;
+            totalProc++;
+          }
+          state.general.mesasInstaladas = resumenData.mesas.length;
+          state.general.mesasProcesadas = totalProc;
+          state.general.votosSistema = totalVotos;
         }
 
         state.cargando = false;
@@ -320,6 +343,19 @@
     // ============ CAMBIAR VISTA ============
     function setVista(v) {
       state.vista = v;
+      render();
+    }
+
+    // ============ APLICAR GENERALES ============
+    function aplicarGenerales() {
+      const g = state.general;
+      const get = id => parseInt(document.getElementById(id)?.value) || 0;
+      g.votosLista2 = get('gen_lista2');
+      g.votosLista7 = get('gen_lista7');
+      g.votosLista300 = get('gen_lista300');
+      g.nulos = get('gen_nulos');
+      g.blanco = get('gen_blanco');
+      g.vac = get('gen_vac');
       render();
     }
 
@@ -602,6 +638,188 @@
         `;
       }
 
+      // === General (todas las mesas) ===
+      function renderGeneral() {
+        const g = state.general;
+        const totalVotos = g.votosSistema || 0;
+        const totalElect = state.totalElectores;
+        const participacion = totalElect > 0 ? ((totalVotos / totalElect) * 100).toFixed(2) : '0.00';
+        const totalGeneral = g.votosLista2 + g.votosLista7 + g.votosLista300 + g.nulos + g.blanco + g.vac;
+        const pct2 = totalGeneral > 0 ? ((g.votosLista2 / totalGeneral) * 100).toFixed(2) : '0.00';
+        const pct7 = totalGeneral > 0 ? ((g.votosLista7 / totalGeneral) * 100).toFixed(2) : '0.00';
+        const pct300 = totalGeneral > 0 ? ((g.votosLista300 / totalGeneral) * 100).toFixed(2) : '0.00';
+        // Bar widths (max 100%)
+        const maxBar = Math.max(g.votosLista2 || 1, g.votosLista7 || 1, g.votosLista300 || 1);
+        const bar2 = maxBar > 0 ? ((g.votosLista2 / maxBar) * 100).toFixed(0) : 0;
+        const bar7 = maxBar > 0 ? ((g.votosLista7 / maxBar) * 100).toFixed(0) : 0;
+        const bar300 = maxBar > 0 ? ((g.votosLista300 / maxBar) * 100).toFixed(0) : 0;
+
+        return `
+        <div style="max-width:800px;margin:0 auto;">
+          <!-- STATS CARDS -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px;">
+            <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:#666;">Mesas instaladas</div>
+              <div style="font-size:22px;font-weight:900;color:#1e293b;">${g.mesasInstaladas}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:#666;">Mesas procesadas</div>
+              <div style="font-size:22px;font-weight:900;color:#1e293b;">${g.mesasProcesadas}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:#666;">Procesado</div>
+              <div style="font-size:22px;font-weight:900;color:${g.mesasInstaladas > 0 && g.mesasProcesadas >= g.mesasInstaladas ? '#16a34a' : '#d97706'};">${g.mesasInstaladas > 0 ? ((g.mesasProcesadas/g.mesasInstaladas)*100).toFixed(2) : 0}%</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:#666;">Participación</div>
+              <div style="font-size:22px;font-weight:900;color:${parseFloat(participacion) > 50 ? '#16a34a' : '#dc2626'};">${participacion}%</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center;">
+              <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:#666;">Total votos</div>
+              <div style="font-size:22px;font-weight:900;color:#1e293b;">${totalVotos.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <!-- TABLA PRINCIPAL -->
+          <div style="background:#fff;border:1px solid #ddd;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+            <table>
+              <thead>
+                <tr style="background:#f1f5f9;">
+                  <th style="padding:10px 8px;font-size:11px;text-transform:uppercase;">Lista</th>
+                  <th style="padding:10px 8px;font-size:11px;text-transform:uppercase;">Candidato</th>
+                  <th style="padding:10px 8px;font-size:11px;text-transform:uppercase;">Votos</th>
+                  <th style="padding:10px 8px;font-size:11px;text-transform:uppercase;">Porcentaje</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:700;color:#d32f2f;">Lista 2 - Honor Colorado</td>
+                  <td></td>
+                  <td style="font-weight:900;">${g.votosLista2.toLocaleString()}</td>
+                  <td>${pct2}%</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:700;color:#1976d2;">Lista 7 - Fuerza y Causa Republicana</td>
+                  <td></td>
+                  <td style="font-weight:900;">${g.votosLista7.toLocaleString()}</td>
+                  <td>${pct7}%</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:700;color:#388e3c;">Lista 300 - Universitario Estudiantil</td>
+                  <td></td>
+                  <td style="font-weight:900;">${g.votosLista300.toLocaleString()}</td>
+                  <td>${pct300}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- BARRAS -->
+          <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px;margin-bottom:16px;">
+            <h3 style="font-size:13px;font-weight:700;margin:0 0 12px 0;text-transform:uppercase;color:#475569;">Votos por Lista</h3>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+                <span style="font-weight:700;color:#d32f2f;">Lista 2</span>
+                <span>${g.votosLista2.toLocaleString()} (${pct2}%)</span>
+              </div>
+              <div style="height:28px;background:#e2e8f0;border-radius:6px;overflow:hidden;">
+                <div style="height:100%;background:#d32f2f;width:${bar2}%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:10px;font-weight:700;${bar2 < 15 ? 'min-width:fit-content;padding-left:8px;color:#333;' : ''}">
+                  ${bar2}%
+                </div>
+              </div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+                <span style="font-weight:700;color:#1976d2;">Lista 7</span>
+                <span>${g.votosLista7.toLocaleString()} (${pct7}%)</span>
+              </div>
+              <div style="height:28px;background:#e2e8f0;border-radius:6px;overflow:hidden;">
+                <div style="height:100%;background:#1976d2;width:${bar7}%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:10px;font-weight:700;">
+                  ${bar7}%
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;">
+                <span style="font-weight:700;color:#388e3c;">Lista 300</span>
+                <span>${g.votosLista300.toLocaleString()} (${pct300}%)</span>
+              </div>
+              <div style="height:28px;background:#e2e8f0;border-radius:6px;overflow:hidden;">
+                <div style="height:100%;background:#388e3c;width:${bar300}%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:10px;font-weight:700;">
+                  ${bar300}%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NULOS / BLANCO / VAC -->
+          <div style="background:#fff;border:1px solid #ddd;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+            <table>
+              <tbody>
+                <tr><td><strong>Votos Nulos</strong></td><td style="font-weight:900;">${g.nulos.toLocaleString()}</td></tr>
+                <tr><td><strong>Votos en Blanco</strong></td><td style="font-weight:900;">${g.blanco.toLocaleString()}</td></tr>
+                <tr><td><strong>Votos a Computar</strong></td><td style="font-weight:900;">${g.vac.toLocaleString()}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- FORMULARIO EDITABLE GENERAL -->
+          <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px;margin-bottom:16px;" class="no-print">
+            <h3 style="font-size:12px;font-weight:700;margin:0 0 12px 0;text-transform:uppercase;color:#475569;">
+              <i class="fas fa-edit" style="margin-right:6px;"></i> Editar Totales Generales
+            </h3>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:#666;display:block;margin-bottom:2px;">Votos Lista 2</label>
+                <input type="number" id="gen_lista2" value="${g.votosLista2}" min="0"
+                  style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;font-weight:900;font-size:16px;text-align:center;">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:#666;display:block;margin-bottom:2px;">Votos Lista 7</label>
+                <input type="number" id="gen_lista7" value="${g.votosLista7}" min="0"
+                  style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;font-weight:900;font-size:16px;text-align:center;">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:#666;display:block;margin-bottom:2px;">Votos Lista 300</label>
+                <input type="number" id="gen_lista300" value="${g.votosLista300}" min="0"
+                  style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;font-weight:900;font-size:16px;text-align:center;">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:#666;display:block;margin-bottom:2px;">Nulos (NUL)</label>
+                <input type="number" id="gen_nulos" value="${g.nulos}" min="0"
+                  style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;font-weight:900;font-size:16px;text-align:center;">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:#666;display:block;margin-bottom:2px;">Blanco (BLC)</label>
+                <input type="number" id="gen_blanco" value="${g.blanco}" min="0"
+                  style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;font-weight:900;font-size:16px;text-align:center;">
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:#666;display:block;margin-bottom:2px;">VAC</label>
+                <input type="number" id="gen_vac" value="${g.vac}" min="0"
+                  style="width:100%;padding:8px;border:2px solid #ddd;border-radius:8px;font-weight:900;font-size:16px;text-align:center;">
+              </div>
+            </div>
+            <button onclick="aplicarGenerales()" style="margin-top:12px;padding:10px 24px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">
+              <i class="fas fa-check" style="margin-right:6px;"></i> ACTUALIZAR GENERALES
+            </button>
+          </div>
+
+          <!-- DATOS DEL SISTEMA (siempre visible) -->
+          <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;font-size:11px;">
+              <div><span style="color:#888;">Elección:</span> <strong>Intendente Municipal</strong></div>
+              <div><span style="color:#888;">Departamento:</span> <strong>Capital</strong></div>
+              <div><span style="color:#888;">Distrito:</span> <strong>Asunción</strong></div>
+              <div><span style="color:#888;">Seccional:</span> <strong>40</strong></div>
+              <div><span style="color:#888;">Electores habilitados:</span> <strong>${totalElect.toLocaleString()}</strong></div>
+              <div><span style="color:#888;">Votos emitidos (sistema):</span> <strong>${totalVotos.toLocaleString()}</strong></div>
+            </div>
+          </div>
+        </div>
+        `;
+      }
+
       // ============ APP HTML ============
       app.innerHTML = `
         <header class="bg-red-900 text-white sticky top-0 z-40 shadow-lg no-print">
@@ -690,6 +908,9 @@
               <button onclick="setVista('contraste')" class="px-3 py-2 ${state.vista === 'contraste' ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'} font-bold rounded-xl text-xs transition-all">
                 <i class="fas fa-balance-scale mr-1"></i> CONTRASTE
               </button>
+              <button onclick="setVista('general')" class="px-3 py-2 ${state.vista === 'general' ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700'} font-bold rounded-xl text-xs transition-all">
+                <i class="fas fa-chart-bar mr-1"></i> GENERAL
+              </button>
             </div>
 
             ${state.editMode ? `
@@ -749,7 +970,11 @@
             <!-- VISTA CONTRASTE -->
             ${state.vista === 'contraste' ? renderContraste() : ''}
 
-            <!-- DATOS DEL CERTIFICADO (siempre visible al final) -->
+            <!-- VISTA GENERAL -->
+            ${state.vista === 'general' ? renderGeneral() : ''}
+
+            <!-- DATOS DEL CERTIFICADO (visible solo en certificado/contraste) -->
+            ${state.vista !== 'general' ? `
             <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 mt-4 p-4 md:p-6">
               <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 mb-3">
                 <i class="fas fa-clipboard-list mr-2"></i> Datos del Certificado
@@ -765,6 +990,7 @@
                 <div><span class="text-slate-400">Participación:</span> <span class="font-bold ${sistemaElectores > 0 ? ((totalActa/sistemaElectores)*100) > 50 ? 'text-green-600' : 'text-red-600' : ''}">${sistemaElectores > 0 ? ((totalActa/sistemaElectores)*100).toFixed(1) : 0}%</span></div>
               </div>
             </div>
+            ` : ''}
           `}
         </main>
       `;
