@@ -130,6 +130,14 @@
       render();
     }
 
+    // ============ HELPERS ============
+    function normalizeText(v) { return String(v || '').trim(); }
+    function cleanCedula(v) { return normalizeText(v).replace(/[.\s,-]/g, ''); }
+    function parseDateSafe(v) {
+      if (!v) return new Date(0);
+      try { const d = new Date(v); return isNaN(d.getTime()) ? new Date(0) : d; } catch(e) { return new Date(0); }
+    }
+
     // ============ FETCH ============
     async function fetchJsonOrThrow(url, opts) {
       const r = await fetch(url, opts);
@@ -151,11 +159,12 @@
         if (!data || !data.registros) throw new Error('No se pudieron cargar los registros');
 
         state.respuestas = data.registros.map((r, i) => {
-          const mesa = parseInt(r.mesa) || 0;
-          const orden = parseInt(r.orden) || 0;
-          const cedula = (r.cedula || '').toString().trim();
-          const ts = r.marcaTemporal || r.fecha || '';
-          return { id: i + 1, mesa, orden, cedula, ts, fila: i + 1 };
+          const mesa = parseInt(normalizeText(r.mesa)) || 0;
+          const orden = normalizeText(r.orden);
+          const cedula = cleanCedula(r.cedula);
+          const ts = r.timestamp || '';
+          const dateObj = parseDateSafe(ts);
+          return { id: i + 1, mesa, orden, cedula, ts, dateObj };
         });
 
         // Agrupar por mesa
@@ -167,7 +176,7 @@
         state.mesas = Object.keys(map).sort((a, b) => parseInt(a) - parseInt(b)).map(m => {
           const items = map[m];
           const cedulasUnicas = new Set(items.map(x => x.cedula));
-          const ultimo = items.reduce((a, b) => a.ts > b.ts ? a : b);
+          const ultimo = items.reduce((a, b) => a.dateObj > b.dateObj ? a : b);
           return {
             mesa: parseInt(m),
             registros: items,
@@ -205,24 +214,18 @@
     }
 
     function formatTime(ts) {
-      if (!ts) return '—';
-      try {
-        const d = new Date(ts);
-        if (isNaN(d.getTime())) return ts;
-        const h = String(d.getHours()).padStart(2, '0');
-        const m = String(d.getMinutes()).padStart(2, '0');
-        return h + ':' + m;
-      } catch (e) { return ts; }
+      const d = parseDateSafe(ts);
+      if (d.getTime() === 0) return '—';
+      const h = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      return h + ':' + m;
     }
 
     function formatDate(ts) {
-      if (!ts) return '—';
-      try {
-        const d = new Date(ts);
-        if (isNaN(d.getTime())) return ts;
-        return d.toLocaleDateString('es-PY', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
-               d.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      } catch (e) { return ts; }
+      const d = parseDateSafe(ts);
+      if (d.getTime() === 0) return '—';
+      return d.toLocaleDateString('es-PY', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
     // ============ RENDER ============
@@ -258,10 +261,10 @@
           (i.ts || '').toLowerCase().includes(q)
         );
       }
-      items.sort((a, b) => (b.ts || '') > (a.ts || '') ? 1 : -1);
+      items.sort((a, b) => b.dateObj - a.dateObj);
 
       const cedulasUnicas = new Set(state.respuestas.map(x => x.cedula));
-      const ultimoReg = state.respuestas.reduce((a, b) => (a.ts || '') > (b.ts || '') ? a : b, { ts: '' });
+      const ultimoReg = state.respuestas.reduce((a, b) => a.dateObj > b.dateObj ? a : b, { ts: '', dateObj: new Date(0) });
 
       const mesasVisibles = state.filtroMesa
         ? [state.mesas.find(m => m.mesa === state.filtroMesa)].filter(Boolean)
@@ -366,7 +369,7 @@
                                   <span><strong>&Uacute;ltimo env&iacute;o:</strong> ${formatDate(m.ultimoRegistro.ts)}</span>
                                 </div>
                               </div>
-                              ${[...m.registros].sort((a, b) => (b.ts || '') > (a.ts || '') ? 1 : -1).map(item => `
+                              ${[...m.registros].sort((a, b) => b.dateObj - a.dateObj).map(item => `
                                 <div class="record-row fade-in">
                                   <div>
                                     <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;">Mesa ${item.mesa}</div>
