@@ -77,7 +77,8 @@
       veedor: 'Veedor Actual',
       veedorNombre: 'Veedor Actual',
       miembroActual: null,
-      vistaLista: false
+      vistaLista: false,
+      mostrarOpciones: null
     };
 
     // ==================== LOGIN ====================
@@ -350,8 +351,9 @@
             const btn = document.getElementById(`btn-orden-${encontrado.orden}`);
             if (btn) {
               btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              btn.style.ring = '4px';
-              btn.style.ringColor = 'red';
+              btn.style.outline = '3px solid #dc2626';
+              btn.style.outlineOffset = '2px';
+              setTimeout(() => { btn.style.outline = ''; btn.style.outlineOffset = ''; }, 2000);
             }
           }, 300);
         }
@@ -457,27 +459,22 @@
       try {
         console.log('Enviando datos:', datos);
         
-        // Construir URL con parámetros (más confiable para GAS)
-        var params = new URLSearchParams({
-          action: 'registrar',
-          timestamp: new Date().toISOString(),
-          cedula: datos.cedula || '',
-          nombre: datos.nombre || '',
-          mesa: datos.mesa || '',
-          orden: datos.orden || '',
-          estado: datos.estado || '',
-          accion: datos.accion || '',
-          dirigente: state.veedor || 'Dirigente',
-          dirigenteNombre: state.veedorNombre || 'Dirigente',
-          origen: 'seccional40'
-        });
-        
-        var url = API_URL + '?' + params.toString();
-        console.log('URL:', url);
-        
-        const result = await fetchJsonOrThrow(url, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
+        const result = await fetchJsonOrThrow(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'registrar',
+            timestamp: new Date().toISOString(),
+            cedula: datos.cedula || '',
+            nombre: datos.nombre || '',
+            mesa: datos.mesa || '',
+            orden: datos.orden || '',
+            estado: datos.estado || '',
+            accion: datos.accion || '',
+            dirigente: state.veedor || 'Dirigente',
+            dirigenteNombre: state.veedorNombre || 'Dirigente',
+            origen: 'seccional40'
+          })
         });
         console.log('Respuesta del servidor:', result);
         

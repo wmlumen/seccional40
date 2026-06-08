@@ -189,8 +189,19 @@ function doPost(e) {
     }
     
     Logger.log('Data procesada: ' + JSON.stringify(data));
+    var action = data.action || 'registrar';
     
-    // Determinar si es un registro de NO VOTO
+    // --- RUTEO DE ACCIONES ---
+    
+    if (action === 'registrar_miembro') {
+      return handleRegistrarMiembro(ss, data);
+    }
+    
+    if (action === 'registrar_pendiente_qr') {
+      return handleRegistrarPendienteQr(ss, data);
+    }
+    
+    // --- REGISTRO DE VOTO / NO VOTO (default) ---
     var esNoVoto = data.estado === 'no_voto' || data.action === 'no_voto';
     Logger.log('Es no_voto: ' + esNoVoto);
     
@@ -260,6 +271,63 @@ function doPost(e) {
     Logger.log('Stack: ' + err.stack);
     return jsonResponse({ success: false, error: err.message || 'Internal error' });
   }
+}
+
+function handleRegistrarMiembro(ss, data) {
+  const cedula = normalizarCedula(data.cedula);
+  const nombre = normalizarTexto(data.nombre);
+  const password = normalizarTexto(data.password);
+  const mesa = normalizarTexto(data.mesa);
+  const horarioInicio = normalizarTexto(data.horarioInicio);
+  const horarioCierre = normalizarTexto(data.horarioCierre);
+  const estado = normalizarEstadoMiembro(data.estado);
+
+  if (!cedula || !nombre || !password) {
+    return jsonResponse({ success: false, error: 'Cédula, nombre y contraseña son obligatorios' });
+  }
+
+  const sheet = ensureMiembrosSheet(ss);
+  const miembros = obtenerMiembros(sheet);
+  const existente = miembros.find(function(m) { return m.cedula === cedula; });
+  const row = [[cedula, nombre, password, mesa, horarioInicio, horarioCierre, estado]];
+
+  if (existente) {
+    sheet.getRange(existente.rowNumber, 1, 1, 7).setValues(row);
+    return jsonResponse({ success: true, accion: 'actualizado', row: existente.rowNumber });
+  }
+
+  sheet.appendRow(row[0]);
+  return jsonResponse({ success: true, accion: 'creado', row: sheet.getLastRow() });
+}
+
+function handleRegistrarPendienteQr(ss, data) {
+  const cedula = normalizarCedula(data.cedula);
+  const nombre = normalizarTexto(data.nombre);
+  const mesa = normalizarTexto(data.mesa);
+  const orden = normalizarTexto(data.orden);
+  const telefono = normalizarTexto(data.telefono);
+  const observacion = normalizarTexto(data.observacion);
+
+  if (!cedula || !nombre) {
+    return jsonResponse({ success: false, error: 'Cedula y nombre son obligatorios' });
+  }
+
+  const sheet = ensurePendientesQrSheet(ss);
+  const pendientes = obtenerPendientesQr(sheet);
+  const yaPendiente = pendientes.find(function(item) {
+    return item.cedula === cedula && item.estado === 'pendiente';
+  });
+
+  if (yaPendiente) {
+    return jsonResponse({ success: false, error: 'Ya existe una solicitud pendiente para esta cedula' });
+  }
+
+  const id = 'qr_' + new Date().getTime() + '_' + cedula;
+  sheet.appendRow([
+    id, new Date().toISOString(), cedula, nombre, mesa, orden, telefono, observacion, 'pendiente', 'qr', ''
+  ]);
+
+  return jsonResponse({ success: true, id: id, tipo: 'pendiente_qr' });
 }
 
 /**

@@ -51,6 +51,7 @@
     const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
     const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXSjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
     let padron = [];
+    let cargando = false;
 
     function mostrarAlerta(texto, tipo) {
       const alerta = document.getElementById('alerta');
@@ -58,6 +59,31 @@
       alerta.className = 'rounded-2xl px-4 py-3 text-sm font-bold mb-4 ' + (tipo === 'ok'
         ? 'bg-green-50 text-green-700 border-2 border-green-200'
         : 'bg-red-50 text-red-700 border-2 border-red-200');
+    }
+
+    function getBackendAccessError() {
+      return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+    }
+
+    async function fetchJsonOrThrow(url, options) {
+      const response = await fetch(url, options);
+      const text = await response.text();
+      const contentType = (response.headers.get('content-type') || '').toLowerCase();
+      const trimmed = text.trim().toLowerCase();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+        throw new Error(getBackendAccessError());
+      }
+
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        throw new Error('Respuesta invalida del backend.');
+      }
     }
 
     async function cargarPadron() {
@@ -82,6 +108,9 @@
     }
 
     async function registrarSolicitud() {
+      const btn = document.querySelector('button');
+      if (cargando) return;
+      
       const cedula = (document.getElementById('cedulaInput').value || '').replace(/\D/g, '');
       const telefono = (document.getElementById('telefonoInput').value || '').trim();
       const observacion = (document.getElementById('observacionInput').value || '').trim();
@@ -97,18 +126,24 @@
         return;
       }
 
+      cargando = true;
+      btn.textContent = 'ENVIANDO...';
+      btn.disabled = true;
+
       try {
-        const params = new URLSearchParams({
-          action: 'registrar_pendiente_qr',
-          cedula: elector.cedula,
-          nombre: elector.nombreCompleto,
-          mesa: elector.mesa,
-          orden: elector.orden,
-          telefono: telefono,
-          observacion: observacion
+        const result = await fetchJsonOrThrow(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'registrar_pendiente_qr',
+            cedula: elector.cedula,
+            nombre: elector.nombreCompleto,
+            mesa: elector.mesa,
+            orden: elector.orden,
+            telefono: telefono,
+            observacion: observacion
+          })
         });
-        const response = await fetch(API_URL + '?' + params.toString());
-        const result = await response.json();
         if (!result.success) {
           mostrarAlerta(result.error || 'No se pudo registrar la solicitud.', 'error');
           return;
@@ -119,6 +154,10 @@
         document.getElementById('observacionInput').value = '';
       } catch (error) {
         mostrarAlerta('Error de conexión con el servidor.', 'error');
+      } finally {
+        cargando = false;
+        btn.textContent = 'ENVIAR SOLICITUD';
+        btn.disabled = false;
       }
     }
 

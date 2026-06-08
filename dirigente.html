@@ -77,8 +77,33 @@
 
         // ============ LIMPIAR CÉDULA ============
         function limpiarCedula(cedula) {
-            // Eliminar puntos, espacios, guiones y comas
             return (cedula || '').replace(/[.\s,-]/g, '').trim();
+        }
+
+        // ============ HELPERS API ============
+        function getBackendAccessError() {
+            return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+        }
+
+        async function fetchJsonOrThrow(url, options) {
+            const response = await fetch(url, options);
+            const text = await response.text();
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const trimmed = text.trim().toLowerCase();
+
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+                throw new Error(getBackendAccessError());
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error('Respuesta invalida del backend.');
+            }
         }
 
         // ============ LOGIN ============
@@ -94,36 +119,19 @@
                 return;
             }
             
-            console.log('=== LOGIN DEBUG ===');
-            console.log('Cédula original ingresada:', cedulaRaw);
-            console.log('Cédula limpiada:', cedula);
-            console.log('Password ingresado:', password);
-            console.log('Dirigentes disponibles:', state.dirigentes.length);
-            console.log('Lista de dirigentes:', state.dirigentes.map(d => ({ cedula: d.cedula, nombre: d.nombre, passLen: d.contraseña.length })));
-            
-            // Buscar dirigente - comparar cédulas limpias
             const dirigente = state.dirigentes.find(d => {
-                const cedulaLimpiaCSV = limpiarCedula(d.cedula);
-                console.log('Comparando:', cedula, 'vs', cedulaLimpiaCSV, '→', cedula === cedulaLimpiaCSV);
-                return cedulaLimpiaCSV === cedula && d.contraseña === password;
+                return limpiarCedula(d.cedula) === cedula && d.contraseña === password;
             });
             
             if (dirigente) {
-                console.log('✅ Login exitoso:', dirigente.nombre);
                 state.dirigente = dirigente;
                 state.autenticado = true;
                 cargarDatos();
             } else {
-                // Mostrar en qué falló
                 const porCedula = state.dirigentes.find(d => limpiarCedula(d.cedula) === cedula);
                 if (porCedula) {
-                    console.log('❌ Cédula encontrada pero contraseña no coincide');
-                    console.log('  Cédula en CSV:', porCedula.cedula);
-                    console.log('  Password CSV:', porCedula.contraseña);
-                    console.log('  Password input:', password);
                     alert('Cédula encontrada pero contraseña incorrecta.\n\nVerifique mayúsculas/minúsculas y espacios.');
                 } else {
-                    console.log('❌ Cédula no encontrada. Cédulas disponibles:', state.dirigentes.map(d => d.cedula));
                     alert('Cédula no encontrada en la lista de dirigentes.\n\nVerifique que su cédula esté registrada correctamente.');
                 }
             }
@@ -315,26 +323,19 @@
             };
             
             try {
-                // Construir URL con parámetros (más confiable para GAS)
-                var params = new URLSearchParams({
-                    action: 'registrar',
-                    estado: 'no_voto',
-                    cedula: cedula,
-                    apellido: '',
-                    nombre: elector.nombre,
-                    dirigente: state.dirigente.nombre,
-                    motivo: motivo
+                const result = await fetchJsonOrThrow(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'registrar',
+                        estado: 'no_voto',
+                        cedula: cedula,
+                        apellido: '',
+                        nombre: elector.nombre,
+                        dirigente: state.dirigente.nombre,
+                        motivo: motivo
+                    })
                 });
-                
-                var url = API_URL + '?' + params.toString();
-                console.log('URL:', url);
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
-                
-                const result = await response.json();
                 console.log('Respuesta:', result);
                 
                 if (result.success) {

@@ -168,7 +168,7 @@
                 cedula: state.consultaResultado.cedula,
                 mesa: state.consultaResultado.mesa || '',
                 orden: state.consultaResultado.orden || '',
-                motivo: 'no_voto',
+                motivo: motivo,
                 observacion: observacion || motivo
             };
             
@@ -177,23 +177,18 @@
                 try {
                     console.log('Enviando no-voto:', data);
                     
-                    // Construir URL con parámetros (más confiable para GAS)
-                    var params = new URLSearchParams({
-                        action: 'registrar',
-                        estado: 'no_voto',
-                        cedula: data.cedula,
-                        mesa: data.mesa,
-                        orden: data.orden,
-                        motivo: data.motivo,
-                        observacion: data.observacion
-                    });
-                    
-                    var url = API_URL + '?' + params.toString();
-                    console.log('URL:', url);
-                    
-                    const result = await fetchJsonOrThrow(url, {
-                        method: 'GET',
-                        headers: { 'Accept': 'application/json' }
+                    const result = await fetchJsonOrThrow(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'registrar',
+                            estado: 'no_voto',
+                            cedula: data.cedula,
+                            mesa: data.mesa,
+                            orden: data.orden,
+                            motivo: data.motivo,
+                            observacion: data.observacion
+                        })
                     });
                     console.log('Respuesta:', result);
                     

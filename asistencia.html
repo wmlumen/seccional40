@@ -439,6 +439,7 @@
     <div id="app"></div>
 
     <script>
+        const PW_COLEGIO = 'Paraguay40';
         const PW_PC = 'Paraguay100';
         const AUTH_SESSION_KEY = 'seccional40_auth';
         const NIVEL_SESSION_KEY = 'seccional40_nivel';
@@ -448,7 +449,32 @@
         const RESPUESTAS_CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${RESPUESTAS_GID}`;
 
         function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
-        function estaAutenticado() { return getNivel() === 'pc'; }
+        function estaAutenticado() { return getNivel() === 'pc' || getNivel() === 'colegio'; }
+
+        function getBackendAccessError() {
+            return 'Backend no disponible: la web app de Apps Script esta pidiendo inicio de sesion.';
+        }
+
+        async function fetchJsonOrThrow(url, options) {
+            const response = await fetch(url, options);
+            const text = await response.text();
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const trimmed = text.trim().toLowerCase();
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            if (contentType.includes('text/html') || trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html')) {
+                throw new Error(getBackendAccessError());
+            }
+
+            try {
+                return JSON.parse(text);
+            } catch (error) {
+                throw new Error('Respuesta invalida del backend.');
+            }
+        }
 
         const state = {
             autenticado: estaAutenticado(),
@@ -540,27 +566,22 @@
                 return;
             }
 
-            if (password !== PW_PC) {
+            let nivel = '';
+            if (password === PW_PC) nivel = 'pc';
+            else if (password === PW_COLEGIO) nivel = 'colegio';
+            else {
                 alert('Contrasena incorrecta.');
                 return;
             }
 
-            sessionStorage.setItem(NIVEL_SESSION_KEY, 'pc');
+            sessionStorage.setItem(NIVEL_SESSION_KEY, nivel);
             sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
             state.autenticado = true;
             loadAll();
         }
 
         async function loadResponses() {
-            const response = await fetch(API_URL + '?action=votos');
-            const text = await response.text();
-
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                throw new Error('Respuesta invalida del backend');
-            }
+            const data = await fetchJsonOrThrow(API_URL + '?action=votos&v=' + Date.now());
 
             if (!data || !data.registros) {
                 throw new Error('No se pudieron cargar los registros');

@@ -175,15 +175,18 @@
             }
 
             try {
-                const params = new URLSearchParams({
-                    action: 'registrar_miembro',
-                    cedula: cedula,
-                    nombre: nombre,
-                    password: password,
-                    mesa: mesa,
-                    estado: estado
+                const result = await fetchJsonOrThrow(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'registrar_miembro',
+                        cedula: cedula,
+                        nombre: nombre,
+                        password: password,
+                        mesa: mesa,
+                        estado: estado
+                    })
                 });
-                const result = await fetchJsonOrThrow(API_URL + '?' + params.toString());
 
                 if (!result.success) {
                     alert(result.error || 'No se pudo guardar el miembro.');
