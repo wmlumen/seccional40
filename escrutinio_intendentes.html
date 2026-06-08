@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SECCIONAL 40 - Escrutinio Intendentes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3); border-color: #dc2626; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-slate-50">
+  <div id="app"></div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwMR773AI2CXsjokD7lEbjhbWSny3I4Pi8SzyuDDp0HQ-sK8UCAueu5uBRrL18K4eG_tg/exec';
+    const PADRON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9_LntZNPtljJwoE3IZRMx_86hLA3SZnGAoRZHqDDJrCqrsuAZS7rHNoCdGqywcw/pub?output=csv';
+    const PW_PC = 'Paraguay100';
+    const AUTH_SESSION_KEY = 'seccional40_auth';
+    const NIVEL_SESSION_KEY = 'seccional40_nivel';
+
+    function getNivel() { return sessionStorage.getItem(NIVEL_SESSION_KEY) || ''; }
+    function estaAutenticado() { return getNivel() === 'pc'; }
+
+    // ============ AGRUPACIONES ============
+    const AGRUPACIONES = [
+      { nro: 1, nombre: 'ANR - Movimiento Colorado Añetete' },
+      { nro: 2, nombre: 'Honor Colorado' },
+      { nro: 3, nombre: 'Movimiento Democrático Republicano' },
+      { nro: 4, nombre: 'Nueva Mayoría Republicana' },
+      { nro: 5, nombre: 'Fuerza Republicana Integración' },
+      { nro: 6, nombre: 'Unión Nacional Republicana' },
+      { nro: 7, nombre: 'Fuerza y Causa Republicana por Asunción' },
+      { nro: 8, nombre: 'Movimiento Republicano Independiente' },
+      { nro: 9, nombre: 'Alternativa Republicana' },
+      { nro: 10, nombre: 'Compromiso Republicano' },
+      { nro: 300, nombre: 'Universitario Estudiantil' }
+    ];
+
+    // ============ ESTADO ============
+    let state = {
+      autenticado: estaAutenticado(),
+      cargando: false,
+      mesa: 1,
+      mesaBloqueada: false,
+      mesas: [],
+      electoresPorMesa: {},
+      totalElectores: 0,
+      totalVotosSistema: 0,
+      totalRegistros: 0,
+      mensaje: '',
+      // Datos de escrutinio (votos por agrupación en esta mesa)
+      escrutinio: {
+        votos: {},       // nroAgrupacion -> cantidad
+        nulos: 0,
+        blanco: 0,
+        vac: 0
+      },
+      editMode: false
+    };
+
+    // Inicializar votos en 0
+    AGRUPACIONES.forEach(a => { state.escrutinio.votos[a.nro] = 0; });
+
+    // ============ AUTH ============
+    function login() {
+      const input = document.getElementById('passwordInput');
+      if (!input) return;
+      const pass = input.value.trim();
+      if (pass !== PW_PC) { alert('Contraseña incorrecta.'); return; }
+      sessionStorage.setItem(NIVEL_SESSION_KEY, 'pc');
+      sessionStorage.setItem(AUTH_SESSION_KEY, 'ok');
+      state.autenticado = true;
+      cargarDatos();
+    }
+
+    function logout() {
+      sessionStorage.removeItem(NIVEL_SESSION_KEY);
+      sessionStorage.removeItem(AUTH_SESSION_KEY);
+      state.autenticado = false;
+      render();
+    }
+
+    // ============ FETCH ============
+    async function fetchJsonOrThrow(url, options) {
+      const resp = await fetch(url, options);
+      const text = await resp.text();
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      const t = text.trim().toLowerCase();
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      if (ct.includes('text/html') || t.startsWith('<!doctype html') || t.startsWith('<html'))
+        throw new Error('Backend no disponible.');
+      try { return JSON.parse(text); } catch (e) { throw new Error('Respuesta inválida.'); }
+    }
+
+    // ============ CARGAR DATOS DEL SISTEMA ============
+    async function cargarDatos() {
+      state.cargando = true;
+      state.mensaje = 'Cargando datos del sistema...';
+      render();
+
+      try {
+        // Cargar padrón CSV y resumen en paralelo
+        const [padronResp, resumenData] = await Promise.all([
+          fetch(PADRON_CSV_URL),
+          fetchJsonOrThrow(API_URL + '?action=resumen&v=' + Date.now()).catch(() => ({ mesas: [] }))
+        ]);
+
+        const text = await padronResp.text();
+        const lineas = text.split('\n').filter(l => l.trim());
+
+        const electoresPorMesa = {};
+        let totalElectores = 0;
+        const mesasSet = new Set();
+
+        for (let i = 1; i < lineas.length; i++) {
+          const p = lineas[i].split(',');
+          if (p.length >= 8) {
+            const mesa = parseInt(p[3].trim()) || 0;
+            if (!electoresPorMesa[mesa]) electoresPorMesa[mesa] = 0;
+            electoresPorMesa[mesa]++;
+            totalElectores++;
+            mesasSet.add(mesa);
+          }
+        }
+
+        state.electoresPorMesa = electoresPorMesa;
+        state.totalElectores = totalElectores;
+        state.mesas = Array.from(mesasSet).sort((a, b) => a - b);
+
+        // Si mesa seleccionada no existe, tomar la primera
+        if (!state.mesa || !electoresPorMesa[state.mesa]) {
+          state.mesa = state.mesas[0] || 1;
+        }
+
+        // Calcular total de votos en el sistema para la mesa actual
+        if (resumenData && resumenData.mesas) {
+          const mesaData = resumenData.mesas.find(m => parseInt(m.mesa) === state.mesa);
+          state.totalVotosSistema = mesaData ? (parseInt(mesaData.votos) || 0) : 0;
+          state.totalRegistros = mesaData ? (parseInt(mesaData.total) || 0) : 0;
+        }
+
+        state.cargando = false;
+        state.mensaje = `✅ ${state.mesas.length} mesas · ${totalElectores} electores`;
+      } catch (e) {
+        state.cargando = false;
+        state.mensaje = '⚠️ Error: ' + (e.message || 'No se pudieron cargar datos');
+      }
+      render();
+    }
+
+    // ============ SELECCIONAR MESA ============
+    function seleccionarMesa() {
+      const input = document.getElementById('mesaInput');
+      if (!input) return;
+      const mesa = parseInt(input.value);
+      if (!mesa || mesa < 1) { alert('Ingrese un número de mesa válido.'); return; }
+      state.mesa = mesa;
+      state.totalVotosSistema = 0;
+      state.totalRegistros = 0;
+      // Reset escrutinio
+      AGRUPACIONES.forEach(a => { state.escrutinio.votos[a.nro] = 0; });
+      state.escrutinio.nulos = 0;
+      state.escrutinio.blanco = 0;
+      state.escrutinio.vac = 0;
+
+      // Recargar datos de la mesa
+      fetchJsonOrThrow(API_URL + '?action=resumen&v=' + Date.now()).then(d => {
+        if (d && d.mesas) {
+          const m = d.mesas.find(x => parseInt(x.mesa) === mesa);
+          state.totalVotosSistema = m ? (parseInt(m.votos) || 0) : 0;
+          state.totalRegistros = m ? (parseInt(m.total) || 0) : 0;
+        }
+        render();
+      }).catch(() => render());
+      render();
+    }
+
+    // ============ CALCULAR TOTALES ============
+    function totalEscrutinio() {
+      let t = state.escrutinio.nulos + state.escrutinio.blanco + state.escrutinio.vac;
+      AGRUPACIONES.forEach(a => { t += (parseInt(state.escrutinio.votos[a.nro]) || 0); });
+      return t;
+    }
+
+    function totalPartidos() {
+      let t = 0;
+      AGRUPACIONES.forEach(a => { t += (parseInt(state.escrutinio.votos[a.nro]) || 0); });
+      return t;
+    }
+
+    function actualizarTotalEdit() {
+      let t = 0;
+      for (const a of AGRUPACIONES) {
+        const el = document.getElementById('voto_' + a.nro);
+        if (el) t += parseInt(el.value) || 0;
+      }
+      const nulosEl = document.getElementById('voto_nulos');
+      const blcEl = document.getElementById('voto_blanco');
+      const vacEl = document.getElementById('voto_vac');
+      if (nulosEl) t += parseInt(nulosEl.value) || 0;
+      if (blcEl) t += parseInt(blcEl.value) || 0;
+      if (vacEl) t += parseInt(vacEl.value) || 0;
+      const display = document.getElementById('totalEditDisplay');
+      if (display) display.textContent = t;
+    }
+
+    // ============ EDITAR ESCRUTINIO ============
+    function toggleEdit() {
+      state.editMode = !state.editMode;
+      render();
+    }
+
+    function applyEdits() {
+      for (const a of AGRUPACIONES) {
+        const el = document.getElementById('voto_' + a.nro);
+        if (el) state.escrutinio.votos[a.nro] = parseInt(el.value) || 0;
+      }
+      const nulosEl = document.getElementById('voto_nulos');
+      const blcEl = document.getElementById('voto_blanco');
+      const vacEl = document.getElementById('voto_vac');
+      if (nulosEl) state.escrutinio.nulos = parseInt(nulosEl.value) || 0;
+      if (blcEl) state.escrutinio.blanco = parseInt(blcEl.value) || 0;
+      if (vacEl) state.escrutinio.vac = parseInt(vacEl.value) || 0;
+      state.editMode = false;
+      render();
+    }
+
+    function cancelEdit() {
+      state.editMode = false;
+      render();
+    }
+
+    function cargarMesa12() {
+      state.mesa = 12;
+      state.escrutinio.votos = {};
+      AGRUPACIONES.forEach(a => { state.escrutinio.votos[a.nro] = 0; });
+      state.escrutinio.votos[2] = 60;  // Honor Colorado
+      state.escrutinio.votos[7] = 68;  // Fuerza y Causa Republicana
+      state.escrutinio.votos[300] = 3; // Universitario Estudiantil
+      state.escrutinio.nulos = 0;
+      state.escrutinio.blanco = 0;
+      state.escrutinio.vac = 3;
+      state.editMode = false;
+      // Recargar datos del sistema para mesa 12
+      fetchJsonOrThrow(API_URL + '?action=resumen&v=' + Date.now()).then(d => {
+        if (d && d.mesas) {
+          const m = d.mesas.find(x => parseInt(x.mesa) === 12);
+          state.totalVotosSistema = m ? (parseInt(m.votos) || 0) : 0;
+          state.totalRegistros = m ? (parseInt(m.total) || 0) : 0;
+        }
+        render();
+      }).catch(() => render());
+      render();
+    }
+
+    // ============ EXPORTAR ============
+    function exportCSV() {
+      const rows = [['Agrupacion', 'Nro', 'Votos']];
+      AGRUPACIONES.forEach(a => {
+        const v = parseInt(state.escrutinio.votos[a.nro]) || 0;
+        if (v > 0) rows.push([a.nombre, a.nro, v]);
+      });
+      rows.push(['Nulos', '', state.escrutinio.nulos]);
+      rows.push(['Blanco', '', state.escrutinio.blanco]);
+      rows.push(['VAC', '', state.escrutinio.vac]);
+      rows.push(['TOTAL', '', totalEscrutinio()]);
+
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'escrutinio_intendentes_mesa' + state.mesa + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.click();
+    }
+
+    // ============ RENDER ============
+    function renderLogin() {
+      return `
+        <div class="min-h-screen flex items-center justify-center p-4">
+          <div class="bg-white rounded-[2rem] p-8 md:p-12 shadow-2xl border border-slate-100 max-w-md w-full text-center">
+            <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <i class="fas fa-vote-yea text-white text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">ESCRUTINIO</h1>
+            <p class="text-slate-500 text-sm mb-8">Intendente Municipal · SECCIONAL 40</p>
+            <div class="space-y-4">
+              <input type="password" id="passwordInput" placeholder="Contraseña"
+                class="w-full px-6 py-4 text-lg font-bold border-2 border-slate-200 rounded-2xl focus:border-red-500 focus:outline-none transition-all text-center"
+                onkeypress="if(event.key === 'Enter') login()">
+              <button onclick="login()" class="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl transition-all shadow-lg">ACCEDER</button>
+            </div>
+            <p class="text-xs text-slate-400 mt-6">Acceso exclusivo PC</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      if (!state.autenticado) { app.innerHTML = renderLogin(); return; }
+
+      const sistemaVotos = state.totalVotosSistema || 0;
+      const sistemaElectores = state.electoresPorMesa[state.mesa] || 0;
+      const totalActa = totalEscrutinio();
+      const totalPart = totalPartidos();
+      const difVotos = sistemaVotos - totalPart;
+      const difTotal = sistemaElectores - totalActa;
+
+      app.innerHTML = `
+        <header class="bg-red-900 text-white sticky top-0 z-40 shadow-lg no-print">
+          <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-red-500 rounded-xl"><i class="fas fa-vote-yea text-white text-xl"></i></div>
+              <div>
+                <h1 class="text-xl font-black uppercase tracking-tighter italic leading-none">ESCRUTINIO</h1>
+                <p class="text-[10px] text-red-200 font-bold uppercase tracking-widest opacity-80">Intendente Municipal · SECC. 40</p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 bg-red-800/50 px-3 py-1.5 rounded-xl border border-red-700">
+              <span class="text-[10px] text-red-300 font-bold uppercase mr-2">Colegio:</span>
+              <a href="index.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Votación</a>
+              <a href="mesas.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">Mesas</a>
+              <a href="escrutinio.html" class="px-2 py-1 hover:bg-red-700 rounded-lg text-[10px] font-bold text-red-200 transition-all">General</a>
+              <span class="text-[10px] text-red-400 mx-1">|</span>
+              <span class="text-[10px] text-red-300 font-bold uppercase">Intendentes:</span>
+              <a href="escrutinio_intendentes.html" class="px-2 py-1 bg-red-600 rounded-lg text-[10px] font-bold text-white">Escrutinio</a>
+            </div>
+
+            <div class="flex items-center gap-2 no-print">
+              <button onclick="cargarDatos()" class="px-3 py-2 bg-red-700 hover:bg-red-600 rounded-xl text-xs font-bold transition-all" title="Recargar">
+                <i class="fas fa-sync-alt ${state.cargando ? 'fa-spin' : ''}"></i>
+              </button>
+              <button onclick="exportCSV()" class="px-3 py-2 bg-red-700 hover:bg-red-600 rounded-xl text-xs font-bold transition-all" title="CSV">
+                <i class="fas fa-file-csv"></i>
+              </button>
+              <button onclick="window.print()" class="px-3 py-2 bg-red-700 hover:bg-red-600 rounded-xl text-xs font-bold transition-all" title="Imprimir">
+                <i class="fas fa-print"></i>
+              </button>
+              <button onclick="logout()" class="px-3 py-2 bg-red-800 hover:bg-red-700 rounded-xl text-xs font-bold transition-all" title="Salir">
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main class="max-w-5xl mx-auto p-3 md:p-6">
+          ${state.cargando ? `
+            <div class="text-center py-12">
+              <div class="inline-block w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mb-4"></div>
+              <p class="text-slate-500 font-bold">${state.mensaje}</p>
+            </div>
+          ` : `
+            <!-- SELECTOR DE MESA -->
+            <div class="bg-white rounded-[2rem] p-4 shadow-xl border border-slate-100 mb-4 no-print">
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="text-xs font-black uppercase tracking-wider text-slate-500">Mesa:</span>
+                <input type="number" id="mesaInput" value="${state.mesa}" min="1"
+                  class="w-20 px-3 py-2 text-lg font-black border-2 border-slate-200 rounded-xl focus:border-red-500 focus:outline-none text-center"
+                  onkeypress="if(event.key==='Enter') seleccionarMesa()">
+                <button onclick="seleccionarMesa()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm transition-all shadow">
+                  <i class="fas fa-arrow-right mr-1"></i> CARGAR
+                </button>
+                <span class="text-xs text-slate-400 ml-2">
+                  Electores en padrón: <strong>${sistemaElectores}</strong>
+                </span>
+              </div>
+            </div>
+
+            ${state.mensaje ? `
+              <div class="bg-red-50 border-2 border-red-100 rounded-xl p-3 mb-4 no-print">
+                <p class="text-xs font-bold text-red-800 text-center">${state.mensaje}</p>
+              </div>
+            ` : ''}
+
+            <!-- BARRA DE ACCIONES -->
+            <div class="flex flex-wrap items-center gap-2 mb-4 no-print">
+              <button onclick="toggleEdit()" class="px-4 py-2 ${state.editMode ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-700 hover:bg-slate-800'} text-white font-bold rounded-xl text-xs transition-all shadow">
+                <i class="fas ${state.editMode ? 'fa-times' : 'fa-pen'} mr-1"></i> ${state.editMode ? 'CANCELAR EDICIÓN' : 'EDITAR ACTA'}
+              </button>
+              ${state.editMode ? `
+                <button onclick="applyEdits()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs transition-all shadow">
+                  <i class="fas fa-check mr-1"></i> GUARDAR DATOS
+                </button>
+              ` : ''}
+              <button onclick="cargarMesa12()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition-all shadow">
+                <i class="fas fa-database mr-1"></i> CARGAR MESA 12
+              </button>
+            </div>
+
+            ${state.editMode ? `
+              <!-- FORMULARIO DE EDICIÓN -->
+              <div class="bg-white rounded-[2rem] shadow-xl border border-amber-200 mb-4 overflow-hidden">
+                <div class="p-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+                  <h3 class="text-sm font-black uppercase tracking-wider text-amber-700">
+                    <i class="fas fa-edit mr-2"></i> Ingresar datos del Acta — Mesa ${state.mesa}
+                  </h3>
+                </div>
+                <div class="p-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                    ${AGRUPACIONES.map(a => {
+                      const v = parseInt(state.escrutinio.votos[a.nro]) || 0;
+                      return `
+                        <div class="bg-slate-50 p-2 rounded-xl border border-slate-200">
+                          <label class="text-[9px] font-black uppercase tracking-wider text-slate-500 block mb-1" for="voto_${a.nro}">
+                            N° ${a.nro}
+                          </label>
+                          <div class="text-[10px] text-slate-700 mb-1 leading-tight">${a.nombre}</div>
+                          <input type="number" id="voto_${a.nro}" value="${v}" min="0"
+                            class="w-full px-3 py-2 text-lg font-black border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none text-center"
+                            onchange="actualizarTotalEdit()">
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+
+                  <div class="grid grid-cols-3 gap-3 mt-3">
+                    <div class="bg-red-50 p-3 rounded-xl border border-red-200">
+                      <label class="text-[9px] font-black uppercase tracking-wider text-red-600 block mb-1">Nulos (NUL)</label>
+                      <input type="number" id="voto_nulos" value="${state.escrutinio.nulos}" min="0"
+                        class="w-full px-3 py-2 text-lg font-black border-2 border-red-200 rounded-xl focus:border-red-500 focus:outline-none text-center"
+                        onchange="actualizarTotalEdit()">
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-200">
+                      <label class="text-[9px] font-black uppercase tracking-wider text-blue-600 block mb-1">Blanco (BLC)</label>
+                      <input type="number" id="voto_blanco" value="${state.escrutinio.blanco}" min="0"
+                        class="w-full px-3 py-2 text-lg font-black border-2 border-blue-200 rounded-xl focus:border-blue-500 focus:outline-none text-center"
+                        onchange="actualizarTotalEdit()">
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-xl border border-purple-200">
+                      <label class="text-[9px] font-black uppercase tracking-wider text-purple-600 block mb-1">VAC</label>
+                      <input type="number" id="voto_vac" value="${state.escrutinio.vac}" min="0"
+                        class="w-full px-3 py-2 text-lg font-black border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none text-center"
+                        onchange="actualizarTotalEdit()">
+                    </div>
+                  </div>
+
+                  <div class="mt-3 p-3 bg-slate-100 rounded-xl text-center">
+                    <span class="text-xs font-bold text-slate-600">Total acta: </span>
+                    <span id="totalEditDisplay" class="text-xl font-black text-slate-900">${totalEscrutinio()}</span>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- CONTRASTE SISTEMA vs ACTA -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <!-- Columna: Datos del Sistema -->
+              <div class="bg-white rounded-[2rem] p-5 shadow-lg border border-blue-200">
+                <h3 class="text-xs font-black uppercase tracking-wider text-blue-700 mb-3">
+                  <i class="fas fa-server mr-1"></i> Registro del Sistema
+                </h3>
+                <div class="space-y-2">
+                  <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span class="text-sm text-slate-600">Electores habilitados</span>
+                    <span class="text-lg font-black text-slate-900">${sistemaElectores}</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span class="text-sm text-slate-600">Votos registrados</span>
+                    <span class="text-lg font-black text-blue-600">${sistemaVotos}</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2">
+                    <span class="text-sm text-slate-600">Total registros</span>
+                    <span class="text-lg font-black text-slate-900">${state.totalRegistros}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Columna: Datos del Acta -->
+              <div class="bg-white rounded-[2rem] p-5 shadow-lg border border-green-200">
+                <h3 class="text-xs font-black uppercase tracking-wider text-green-700 mb-3">
+                  <i class="fas fa-file-alt mr-1"></i> Acta de Escrutinio
+                </h3>
+                <div class="space-y-2">
+                  <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span class="text-sm text-slate-600">Votos a partidos</span>
+                    <span class="text-lg font-black text-green-600">${totalPart}</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2 border-b border-slate-100">
+                    <span class="text-sm text-slate-600">Nulos + Blanco + VAC</span>
+                    <span class="text-lg font-black text-slate-900">${state.escrutinio.nulos + state.escrutinio.blanco + state.escrutinio.vac}</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2">
+                    <span class="text-sm font-bold text-slate-800">Total acta</span>
+                    <span class="text-lg font-black text-slate-900">${totalActa}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TABLA DE CONTRASTE -->
+            <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 mb-4 overflow-hidden">
+              <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-black uppercase tracking-wider text-slate-700">
+                  <i class="fas fa-balance-scale mr-2 text-red-600"></i> Contraste Sistema vs Acta
+                </h3>
+              </div>
+              <div class="p-4">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-slate-50">
+                      <th class="px-3 py-2 text-left text-[10px] font-black uppercase tracking-wider text-slate-500">Indicador</th>
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-blue-600">Sistema</th>
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-green-600">Acta</th>
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-red-600">Diferencia</th>
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-slate-500">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-slate-100">
+                      <td class="px-3 py-3 font-bold text-slate-900">Votos contabilizados</td>
+                      <td class="px-3 py-3 text-center font-bold text-blue-600">${sistemaVotos}</td>
+                      <td class="px-3 py-3 text-center font-bold text-green-600">${totalPart}</td>
+                      <td class="px-3 py-3 text-center font-black ${difVotos === 0 ? 'text-green-600' : Math.abs(difVotos) < 5 ? 'text-amber-600' : 'text-red-600'}">
+                        ${difVotos === 0 ? '0' : (difVotos > 0 ? '+':'') + difVotos}
+                      </td>
+                      <td class="px-3 py-3 text-center">
+                        ${difVotos === 0
+                          ? '<span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-black rounded-full">✅ COINCIDE</span>'
+                          : `<span class="px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-black rounded-full">⚠️ DIFIERE</span>`
+                        }
+                      </td>
+                    </tr>
+                    <tr class="border-b border-slate-100">
+                      <td class="px-3 py-3 font-bold text-slate-900">Total general</td>
+                      <td class="px-3 py-3 text-center font-bold text-blue-600">${sistemaElectores}</td>
+                      <td class="px-3 py-3 text-center font-bold text-green-600">${totalActa}</td>
+                      <td class="px-3 py-3 text-center font-black ${difTotal === 0 ? 'text-green-600' : 'text-red-600'}">
+                        ${difTotal === 0 ? '0' : (difTotal > 0 ? '+':'') + difTotal}
+                      </td>
+                      <td class="px-3 py-3 text-center">
+                        ${difTotal === 0
+                          ? '<span class="px-2 py-1 bg-green-100 text-green-700 text-[10px] font-black rounded-full">✅ COINCIDE</span>'
+                          : '<span class="px-2 py-1 bg-red-100 text-red-700 text-[10px] font-black rounded-full">❌ DISCREPANCIA</span>'
+                        }
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- RESULTADOS POR AGRUPACIÓN -->
+            <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
+              <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-sm font-black uppercase tracking-wider text-slate-700">
+                  <i class="fas fa-list-ol mr-2 text-red-600"></i> Resultados por Agrupación
+                </h3>
+                <span class="text-xs text-slate-400">Mesa ${state.mesa}</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="bg-red-50">
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-slate-500">N°</th>
+                      <th class="px-3 py-2 text-left text-[10px] font-black uppercase tracking-wider text-slate-500">Agrupación Política</th>
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-red-600">Votos</th>
+                      <th class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider text-slate-500">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${AGRUPACIONES.filter(a => (parseInt(state.escrutinio.votos[a.nro]) || 0) > 0).map(a => {
+                      const v = parseInt(state.escrutinio.votos[a.nro]) || 0;
+                      const pct = totalPart > 0 ? ((v / totalPart) * 100).toFixed(1) : '0.0';
+                      const max = Math.max(...AGRUPACIONES.map(x => parseInt(state.escrutinio.votos[x.nro]) || 0));
+                      const isWinner = v === max && v > 0;
+                      return `
+                        <tr class="border-b border-slate-100 ${isWinner ? 'bg-green-50' : 'hover:bg-slate-50'}">
+                          <td class="px-3 py-3 text-center font-black text-slate-900">${a.nro}</td>
+                          <td class="px-3 py-3 font-bold ${isWinner ? 'text-green-800' : 'text-slate-900'}">
+                            ${a.nombre}
+                            ${isWinner ? '<span class="ml-2 px-2 py-0.5 bg-green-200 text-green-800 text-[9px] font-black rounded-full">GANADOR</span>' : ''}
+                          </td>
+                          <td class="px-3 py-3 text-center font-black text-slate-900">${v}</td>
+                          <td class="px-3 py-3 text-center font-bold text-slate-600">${pct}%</td>
+                        </tr>
+                      `;
+                    }).join('')}
+                    ${(() => {
+                      const tieneVAC = state.escrutinio.vac > 0;
+                      const tieneNulos = state.escrutinio.nulos > 0;
+                      const tieneBlanco = state.escrutinio.blanco > 0;
+                      const extras = [];
+                      if (tieneNulos) extras.push({ label: 'Votos Nulos (NUL)', v: state.escrutinio.nulos });
+                      if (tieneBlanco) extras.push({ label: 'Votos en Blanco (BLC)', v: state.escrutinio.blanco });
+                      if (tieneVAC) extras.push({ label: 'Votos a Computar (VAC)', v: state.escrutinio.vac });
+                      return extras.map(e => `
+                        <tr class="border-b border-slate-100 text-slate-500">
+                          <td class="px-3 py-3 text-center font-black">-</td>
+                          <td class="px-3 py-3 font-bold italic">${e.label}</td>
+                          <td class="px-3 py-3 text-center font-black">${e.v}</td>
+                          <td class="px-3 py-3 text-center">-</td>
+                        </tr>
+                      `).join('');
+                    })()}
+                  </tbody>
+                  <tfoot>
+                    <tr class="bg-red-50 font-bold">
+                      <td class="px-3 py-3 text-center font-black text-slate-900"></td>
+                      <td class="px-3 py-3 font-black text-slate-900">TOTAL GENERAL</td>
+                      <td class="px-3 py-3 text-center font-black text-slate-900">${totalActa}</td>
+                      <td class="px-3 py-3 text-center font-black text-slate-900">100%</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <!-- DATOS DEL ACTA -->
+            <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 mt-4 p-4 md:p-6">
+              <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 mb-3">
+                <i class="fas fa-clipboard-list mr-2"></i> Datos del Certificado
+              </h3>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div><span class="text-slate-400">Elección:</span> <span class="font-bold text-slate-900">Intendente Municipal</span></div>
+                <div><span class="text-slate-400">Departamento:</span> <span class="font-bold text-slate-900">Capital</span></div>
+                <div><span class="text-slate-400">Distrito:</span> <span class="font-bold text-slate-900">Asunción</span></div>
+                <div><span class="text-slate-400">Seccional:</span> <span class="font-bold text-slate-900">40</span></div>
+                <div><span class="text-slate-400">Mesa:</span> <span class="font-bold text-slate-900">${state.mesa}</span></div>
+                <div><span class="text-slate-400">Electores habilitados:</span> <span class="font-bold text-slate-900">${sistemaElectores}</span></div>
+                <div><span class="text-slate-400">Votos emitidos (acta):</span> <span class="font-bold text-slate-900">${totalActa}</span></div>
+                <div><span class="text-slate-400">Participación:</span> <span class="font-bold ${sistemaElectores > 0 ? ((totalActa/sistemaElectores)*100) > 50 ? 'text-green-600' : 'text-red-600' : ''}">${sistemaElectores > 0 ? ((totalActa/sistemaElectores)*100).toFixed(1) : 0}%</span></div>
+              </div>
+            </div>
+          `}
+        </main>
+      `;
+    }
+
+    // ============ INIT ============
+    if (state.autenticado) {
+      cargarDatos();
+    } else {
+      render();
+    }
+  </script>
+</body>
+</html>
