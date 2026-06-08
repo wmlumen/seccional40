@@ -74,7 +74,6 @@
       consultaResultado: null,
       transferLog: [],
       showQR: false,
-      qrPendientes: [],
       veedor: 'Veedor Actual',
       veedorNombre: 'Veedor Actual',
       miembroActual: null,
@@ -208,9 +207,6 @@
         
         // Cargar asignacion de dirigentes (columna J del CSV)
         cargarAsignacionDirigentes();
-        
-        // Cargar solicitudes QR pendientes (solo PC)
-        if (esPc()) cargarQrPendientes();
       } catch (error) {
         console.error('Error cargando padron:', error);
         state.cargando = false;
@@ -313,56 +309,6 @@
         }
       });
       console.log('Asignacion dirigentes desde CSV:', Object.keys(state.asignacionDirigentes).length, 'registros');
-    }
-
-    // ==================== QR PENDIENTES (SOLO PC) ====================
-    async function cargarQrPendientes() {
-      if (!esPc()) return;
-      try {
-        const data = await fetchJsonOrThrow(API_URL + '?action=pendientes_qr&v=' + Date.now());
-        state.qrPendientes = (data && data.registros ? data.registros : []).filter(r => r.estado === 'pendiente');
-      } catch (e) {
-        console.error('Error cargando QR pendientes:', e);
-      }
-    }
-
-    async function aprobarQR(id) {
-      if (!confirm('¿Aprobar esta solicitud QR? Se registrará como voto.')) return;
-      try {
-        const data = await fetchJsonOrThrow(API_URL + '?action=aprobar_pendiente_qr&id=' + encodeURIComponent(id));
-        if (data && data.success) {
-          await cargarQrPendientes();
-          render();
-          alert('✅ Solicitud aprobada. Voto registrado correctamente.');
-        } else {
-          alert('Error: ' + (data.error || 'No se pudo aprobar'));
-        }
-      } catch (e) {
-        alert('Error de conexión: ' + e.message);
-      }
-    }
-
-    async function rechazarQR(id) {
-      if (!confirm('¿Rechazar esta solicitud QR?')) return;
-      // Rechazar vía POST (actualizar estado) - requiere endpoint en doPost
-      try {
-        const result = await fetchJsonOrThrow(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'rechazar_pendiente_qr',
-            id: id
-          })
-        });
-        if (result && result.success) {
-          await cargarQrPendientes();
-          render();
-        } else {
-          alert('Error: ' + (result.error || 'No se pudo rechazar'));
-        }
-      } catch (e) {
-        alert('Error de conexión: ' + e.message);
-      }
     }
 
     // ==================== BUSCAR POR CEDULA ====================
@@ -683,40 +629,6 @@
                 </div>
               </div>
 
-              <!-- SOLICITUDES QR PENDIENTES (solo PC) -->
-              ${esPc() && state.qrPendientes.length > 0 ? `
-              <div class="bg-white rounded-[2rem] shadow-xl border border-amber-200 mb-4 overflow-hidden">
-                <div class="bg-amber-50 px-4 py-3 border-b border-amber-200 flex items-center justify-between">
-                  <h2 class="text-sm font-black text-amber-800 uppercase tracking-tight">
-                    <i class="fas fa-qrcode text-amber-600 mr-2"></i>Solicitudes QR Pendientes
-                    <span class="ml-2 px-2 py-0.5 bg-amber-500 text-white text-[10px] rounded-full">${state.qrPendientes.length}</span>
-                  </h2>
-                  <button onclick="cargarQrPendientes(); render();" class="text-xs text-amber-600 hover:text-amber-800 font-bold" title="Recargar">
-                    <i class="fas fa-sync-alt"></i>
-                  </button>
-                </div>
-                <div class="divide-y divide-amber-100 max-h-60 overflow-y-auto">
-                  ${state.qrPendientes.map(q => `
-                    <div class="p-3 flex items-center justify-between gap-3 hover:bg-amber-50/50 transition-all">
-                      <div class="min-w-0 flex-1">
-                        <p class="font-bold text-slate-900 text-sm truncate">${q.nombre}</p>
-                        <p class="text-xs text-slate-500">CI: ${q.cedula} · Mesa: ${q.mesa || '-'} · ${q.telefono ? '📱 '+q.telefono : ''}</p>
-                        ${q.observacion ? `<p class="text-[11px] text-slate-400 italic mt-0.5">"${q.observacion}"</p>` : ''}
-                      </div>
-                      <div class="flex gap-2 shrink-0">
-                        <button onclick="aprobarQR('${q.id}')" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-black rounded-lg transition-all">
-                          <i class="fas fa-check mr-1"></i>APROBAR
-                        </button>
-                        <button onclick="rechazarQR('${q.id}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black rounded-lg transition-all">
-                          <i class="fas fa-times mr-1"></i>RECHAZAR
-                        </button>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-              ` : ''}
-
               <!-- CONTROL DE VISTA -->
               <div class="bg-white p-3 rounded-[2rem] shadow-2xl border border-slate-100 mb-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -1021,7 +933,6 @@
       state.veedor = 'GENERAL';
       state.veedorNombre = 'Coordinacion General';
       cargarPadron();
-      if (esPc()) cargarQrPendientes();
     } else {
       render();
     }
