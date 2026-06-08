@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="styles.css">
   <style>
     body { font-family: 'Inter', sans-serif; }
-    #qrCanvas { display: block; }
+    .qr-expanded { width: 18rem !important; height: 18rem !important; max-width: 90vw !important; max-height: 90vw !important; padding: 0.5rem !important; }
     .focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.3); border-color: #dc2626; }
     .bg-pattern { background: linear-gradient(135deg, #fef2f2 0%, #ffffff 50%, #fee2e2 100%); }
   </style>
@@ -47,11 +47,16 @@
       <div class="bg-gradient-to-br from-red-50 to-red-100/40 border-2 border-red-100 rounded-[2rem] p-5 md:p-6 mb-8 text-center">
         <p class="text-[10px] font-black uppercase tracking-[0.25em] text-red-700 mb-4">Acceso móvil</p>
         <div class="flex justify-center">
-          <canvas id="qrCanvas" class="w-36 h-36 mx-auto rounded-2xl bg-white p-2 border-2 border-red-200 shadow-sm"
-                  aria-label="Código QR de acceso al formulario de registro previo de la Seccional 40"></canvas>
+          <button id="qrBtn" onclick="toggleQR()" class="transition-all duration-300 ease-in-out focus-ring rounded-2xl" aria-label="Tocar para agrandar o achicar el código QR">
+            <img id="qrImg" alt="Código QR de acceso al formulario de registro previo de la Seccional 40"
+                 class="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-white p-1.5 border-2 border-red-200 shadow-sm cursor-pointer hover:shadow-md transition-all duration-300 ease-in-out">
+          </button>
         </div>
-        <p class="text-xs text-slate-500 mt-4 leading-relaxed">
-          Escanee este código QR con su celular para abrir este mismo formulario de registro.
+        <p id="qrHint" class="text-xs text-slate-500 mt-4 leading-relaxed">
+          <i class="fas fa-hand-pointer mr-1"></i> Toque el código QR para agrandarlo y escanearlo con su celular.
+        </p>
+        <p id="qrHintLarge" class="text-xs text-slate-500 mt-2 leading-relaxed hidden">
+          <i class="fas fa-compress mr-1"></i> Toque nuevamente para achicar.
         </p>
       </div>
 
@@ -158,17 +163,53 @@
     let electorEncontrado = null;
 
     // ===== QR =====
+    var qrExpandido = false;
+
     function generarQR() {
-      const canvas = document.getElementById('qrCanvas');
-      if (!canvas || typeof QRCode === 'undefined') return;
+      const img = document.getElementById('qrImg');
+      if (!img) return;
       const url = window.location.href;
-      QRCode.toCanvas(canvas, url, {
-        width: 200,
-        margin: 1,
-        color: { dark: '#1e293b', light: '#ffffff' }
-      }, function(err) {
-        if (err) console.error('Error generando QR:', err);
-      });
+
+      function ponerURL(dataURL) {
+        img.src = dataURL;
+      }
+
+      function fallbackGoogle() {
+        img.src = 'https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=' + encodeURIComponent(url);
+      }
+
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toDataURL(url, {
+          width: 200,
+          margin: 1,
+          color: { dark: '#1e293b', light: '#ffffff' }
+        }, function(err, dataURL) {
+          if (err || !dataURL) { fallbackGoogle(); return; }
+          ponerURL(dataURL);
+        });
+      } else {
+        fallbackGoogle();
+      }
+    }
+
+    function toggleQR() {
+      const img = document.getElementById('qrImg');
+      const hint = document.getElementById('qrHint');
+      const hintLarge = document.getElementById('qrHintLarge');
+      if (!img) return;
+
+      qrExpandido = !qrExpandido;
+      if (qrExpandido) {
+        img.classList.add('qr-expanded');
+        img.classList.remove('w-24', 'h-24', 'md:w-28', 'md:h-28');
+        if (hint) hint.classList.add('hidden');
+        if (hintLarge) hintLarge.classList.remove('hidden');
+      } else {
+        img.classList.remove('qr-expanded');
+        img.classList.add('w-24', 'h-24', 'md:w-28', 'md:h-28');
+        if (hint) hint.classList.remove('hidden');
+        if (hintLarge) hintLarge.classList.add('hidden');
+      }
     }
 
     // ===== UI HELPERS =====
